@@ -6,6 +6,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Td, Th, Table } from "@/components/ui/table";
+import { getCustomerDisplayName } from "@/lib/customers";
 import { getDashboardSummary } from "@/lib/data/queries";
 import { orderStatusLabels, paymentStatusLabels, getOrderStatusTone } from "@/lib/orders/status";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -27,37 +28,37 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <StatCard
           icon={Wallet}
-          label="Total sales"
+          label="Total penjualan"
           value={formatCurrency(stats.totalSales)}
           helper="Dari order dengan payment PAID"
         />
         <StatCard
           icon={ShoppingBag}
-          label="Total order"
+          label="Total pesanan"
           value={String(stats.totalOrders)}
           helper="Web, WhatsApp, dan admin"
         />
         <StatCard
           icon={CreditCard}
-          label="Pending payment"
+          label="Menunggu bayar"
           value={String(stats.pendingPayment)}
           helper="Butuh verifikasi admin"
         />
         <StatCard
           icon={ClipboardList}
-          label="Processing order"
+          label="Diproses"
           value={String(stats.processingOrders)}
           helper="PAID sampai PACKING"
         />
         <StatCard
           icon={Boxes}
-          label="Low stock"
+          label="Stok menipis"
           value={String(stats.lowStockProducts)}
           helper="Varian menyentuh threshold"
         />
         <StatCard
           icon={Star}
-          label="Review average"
+          label="Rata-rata ulasan"
           value={stats.reviewAverage.toFixed(1)}
           helper="Rating customer"
         />
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Sales 7 hari terakhir</CardTitle>
+            <CardTitle>Penjualan 7 hari terakhir</CardTitle>
           </CardHeader>
           <CardContent>
             <SalesChart data={salesSeries} />
@@ -75,7 +76,7 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Low stock warning</CardTitle>
+            <CardTitle>Peringatan stok</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {lowStocks.length ? (
@@ -122,7 +123,7 @@ export default async function DashboardPage() {
                         {order.order_code}
                       </Link>
                     </Td>
-                    <Td>{order.customer?.name ?? "Customer"}</Td>
+                    <Td>{order.customer ? getCustomerDisplayName(order.customer) : "Customer"}</Td>
                     <Td>
                       <Badge tone={getOrderStatusTone(order.status)}>
                         {orderStatusLabels[order.status]}

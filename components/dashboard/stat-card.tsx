@@ -13,14 +13,16 @@ export function StatCard({
   icon: LucideIcon;
 }) {
   return (
-    <Card>
+    <Card className="transition hover:border-primary/25 hover:shadow-[0_10px_24px_rgba(16,37,40,0.08)]">
       <CardContent className="flex items-start justify-between gap-4 p-5">
-        <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="mt-2 text-2xl font-semibold">{value}</p>
-          {helper ? <p className="mt-2 text-xs text-muted-foreground">{helper}</p> : null}
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {label}
+          </p>
+          <p className="mt-3 truncate text-2xl font-semibold tracking-tight">{value}</p>
+          {helper ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{helper}</p> : null}
         </div>
-        <div className="rounded-md bg-primary/10 p-2 text-primary">
+        <div className="rounded-md bg-primary/10 p-2.5 text-primary">
           <Icon className="h-5 w-5" aria-hidden />
         </div>
       </CardContent>

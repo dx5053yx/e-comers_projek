@@ -8,6 +8,11 @@ import { createSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supa
 import type { Order, Product, ProductVariant } from "@/lib/types";
 import { openClawWebhookSchema } from "@/lib/validations/schemas";
 import {
+  createFallbackCustomerName,
+  isPhoneLike,
+  normalizeWhatsAppNumber,
+} from "@/lib/whatsapp";
+import {
   buildAvailabilityReply,
   buildFallbackReply,
   buildDeliveryReply,
@@ -123,6 +128,37 @@ function looksComplete(reply: string) {
   }
 
   return !/(\*|-|:|\d+\.)$/.test(reply.trim());
+}
+
+function getRawString(
+  raw: Record<string, unknown>,
+  keys: string[],
+) {
+  for (const key of keys) {
+    const value = raw[key];
+
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function getCustomerNameFromWebhook(raw: Record<string, unknown>, phone: string) {
+  const name = getRawString(raw, [
+    "pushName",
+    "notifyName",
+    "contactName",
+    "senderName",
+    "verifiedBizName",
+  ]);
+
+  if (!name || isPhoneLike(name) || name === phone) {
+    return createFallbackCustomerName(phone);
+  }
+
+  return name.slice(0, 80);
 }
 
 function productNamesStillPresent(
@@ -267,28 +303,71 @@ export async function POST(request: Request) {
       return jsonError("Business tidak ditemukan.", 404);
     }
 
-    const { data: existingCustomer } = await supabase
+    const rawFrom = payload.from.trim();
+    const whatsappNumber = normalizeWhatsAppNumber(rawFrom) ?? rawFrom;
+    const customerName = getCustomerNameFromWebhook(payload.raw, whatsappNumber);
+    const lookupNumbers = Array.from(new Set([whatsappNumber, rawFrom]));
+
+    const { data: existingCustomerByWhatsapp } = await supabase
       .from("customers")
       .select("*")
       .eq("business_id", business.id)
-      .eq("whatsapp_number", payload.from)
+      .in("whatsapp_number", lookupNumbers)
+      .limit(1)
       .maybeSingle();
 
-    const customer =
-      existingCustomer ??
-      (
-        await supabase
+    const { data: existingCustomerByPhone } = existingCustomerByWhatsapp
+      ? { data: null }
+      : await supabase
           .from("customers")
-          .insert({
-            business_id: business.id,
-            name: payload.from,
-            phone: payload.from,
-            whatsapp_number: payload.from,
-            segment: "NEW",
-          })
           .select("*")
-          .single()
-      ).data;
+          .eq("business_id", business.id)
+          .in("phone", lookupNumbers)
+          .limit(1)
+          .maybeSingle();
+
+    const existingCustomer = existingCustomerByWhatsapp ?? existingCustomerByPhone;
+
+    const customerUpdates: Record<string, string> = {};
+
+    if (existingCustomer) {
+      if (existingCustomer.whatsapp_number !== whatsappNumber) {
+        customerUpdates.whatsapp_number = whatsappNumber;
+      }
+
+      if (existingCustomer.phone !== whatsappNumber) {
+        customerUpdates.phone = whatsappNumber;
+      }
+
+      if (!existingCustomer.name || isPhoneLike(existingCustomer.name)) {
+        customerUpdates.name = customerName;
+      }
+    }
+
+    const customer =
+      existingCustomer && Object.keys(customerUpdates).length
+        ? (
+            await supabase
+              .from("customers")
+              .update(customerUpdates)
+              .eq("id", existingCustomer.id)
+              .select("*")
+              .single()
+          ).data
+        : existingCustomer ??
+          (
+            await supabase
+              .from("customers")
+              .insert({
+                business_id: business.id,
+                name: customerName,
+                phone: whatsappNumber,
+                whatsapp_number: whatsappNumber,
+                segment: "NEW",
+              })
+              .select("*")
+              .single()
+          ).data;
 
     const { data: conversation } = await supabase
       .from("conversations")
@@ -297,7 +376,7 @@ export async function POST(request: Request) {
           business_id: business.id,
           customer_id: customer?.id,
           channel: "WHATSAPP",
-          external_chat_id: payload.from,
+          external_chat_id: whatsappNumber,
           last_message_at: payload.timestamp ?? new Date().toISOString(),
         },
         { onConflict: "business_id,external_chat_id" },
@@ -419,7 +498,7 @@ export async function POST(request: Request) {
             shipping_cost: 0,
             grand_total: totals.grandTotal,
             payment_status: "PENDING",
-            notes: `Created from WhatsApp ${payload.from}`,
+            notes: `Created from WhatsApp ${whatsappNumber}`,
           })
           .select("*")
           .single();

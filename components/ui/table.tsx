@@ -7,7 +7,10 @@ export function Table({
 }: React.TableHTMLAttributes<HTMLTableElement>) {
   return (
     <table
-      className={cn("w-full min-w-[760px] border-collapse text-sm", className)}
+      className={cn(
+        "w-full min-w-[760px] border-collapse text-sm [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-muted/35",
+        className,
+      )}
       {...props}
     />
   );
@@ -20,7 +23,7 @@ export function Th({
   return (
     <th
       className={cn(
-        "border-b border-border bg-muted/50 px-4 py-3 text-left font-semibold text-muted-foreground",
+        "border-b border-border bg-muted/40 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground",
         className,
       )}
       {...props}
@@ -34,7 +37,7 @@ export function Td({
 }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn("border-b border-border px-4 py-3 align-middle", className)}
+      className={cn("border-b border-border px-4 py-3.5 align-middle", className)}
       {...props}
     />
   );
