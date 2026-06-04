@@ -23,6 +23,17 @@ import {
   buildTalkToAdminReply,
 } from "@/lib/whatsapp/reply-builder";
 
+type ConversationHistory = NonNullable<
+  Parameters<typeof generateWhatsAppReply>[0]["conversationHistory"]
+>;
+
+type MatchedOrderItem = {
+  product: Product;
+  variant: ProductVariant | null;
+  quantity: number;
+  total: number;
+};
+
 function normalize(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -195,6 +206,166 @@ function shouldKeepLocalTone(message: string) {
   );
 }
 
+function extractQuantity(message: string) {
+  const normalized = normalize(message);
+  const numeric = normalized.match(/\b(\d{1,3})\b/);
+
+  if (numeric) {
+    return Number(numeric[1]);
+  }
+
+  const wordMap: Record<string, number> = {
+    satu: 1,
+    se: 1,
+    dua: 2,
+    tiga: 3,
+    empat: 4,
+    lima: 5,
+    enam: 6,
+    tujuh: 7,
+    delapan: 8,
+    sembilan: 9,
+    sepuluh: 10,
+  };
+
+  for (const [word, value] of Object.entries(wordMap)) {
+    if (new RegExp(`\\b${word}\\b`).test(normalized)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function isAffirmation(message: string) {
+  return /^(iya|ya|y|ok|oke|siap|betul|bener|benar|jadi|lanjut|gas)(\b|$)/.test(normalize(message));
+}
+
+function looksLikeOrderRequest(message: string) {
+  return /\b(mau|pesan|order|beli|ambil|bungkus|jadi|lanjut)\b/.test(normalize(message));
+}
+
+function toMatchedOrderItem(product: Product, quantity: number): MatchedOrderItem {
+  const variant = product.variants?.find((candidate) => candidate.is_active) ?? null;
+
+  return {
+    product,
+    variant,
+    quantity,
+    total: product.price * quantity,
+  };
+}
+
+function buildMatchedItemsFromIntent(
+  items: Array<{ product_name: string; quantity: number }>,
+  products: Product[],
+) {
+  return items
+    .map((item) => {
+      const product = matchProduct(products, item.product_name);
+
+      return product ? toMatchedOrderItem(product, item.quantity) : null;
+    })
+    .filter(Boolean) as MatchedOrderItem[];
+}
+
+function recentlyMentionedProducts(history: ConversationHistory, products: Product[]) {
+  const recentText = history
+    .slice(-4)
+    .map((item) => item.message)
+    .join(" ");
+  const normalizedRecent = normalize(recentText);
+
+  return products.filter((product) => normalizedRecent.includes(normalize(product.name)));
+}
+
+function inferMatchedItemsFromMessage(
+  message: string,
+  products: Product[],
+  history: ConversationHistory,
+) {
+  const quantity = extractQuantity(message);
+
+  if (!quantity) {
+    return [];
+  }
+
+  const directProduct = matchProduct(products, message);
+
+  if (directProduct) {
+    return [toMatchedOrderItem(directProduct, quantity)];
+  }
+
+  if (!looksLikeOrderRequest(message) && !isAffirmation(message)) {
+    return [];
+  }
+
+  const activeProducts = products.filter((product) => product.is_active);
+
+  if (activeProducts.length === 1) {
+    return [toMatchedOrderItem(activeProducts[0], quantity)];
+  }
+
+  const mentionedProducts = recentlyMentionedProducts(history, activeProducts);
+
+  if (mentionedProducts.length === 1) {
+    return [toMatchedOrderItem(mentionedProducts[0], quantity)];
+  }
+
+  return [];
+}
+
+function getLastBotMessage(history: ConversationHistory) {
+  return history
+    .slice()
+    .reverse()
+    .find((item) => item.sender === "BOT")?.message ?? null;
+}
+
+function getPendingOrderFromLastBot(history: ConversationHistory, products: Product[]) {
+  const lastBotMessage = getLastBotMessage(history);
+
+  if (!lastBotMessage) {
+    return [];
+  }
+
+  const normalizedBot = normalize(lastBotMessage);
+
+  if (normalizedBot.includes("kode order") || normalizedBot.includes("pesanan berhasil")) {
+    return [];
+  }
+
+  const product = products.find((item) => {
+    const productName = normalize(item.name);
+    const productIndex = normalizedBot.indexOf(productName);
+
+    if (productIndex < 0) {
+      return false;
+    }
+
+    const beforeProduct = normalizedBot.slice(0, productIndex);
+
+    return /\b(mau pesan|mau ambil|pesan|ambil|bungkus)\b/.test(beforeProduct);
+  });
+
+  if (!product) {
+    return [];
+  }
+
+  const productName = normalize(product.name);
+  const productIndex = normalizedBot.indexOf(productName);
+  const afterProduct = normalizedBot.slice(productIndex + productName.length, productIndex + productName.length + 80);
+  const hasQuantityUnit = /\b(\d{1,3}|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh)\s*(porsi|pcs|buah|bungkus|item)\b/.test(afterProduct);
+
+  if (!hasQuantityUnit) {
+    return [];
+  }
+
+  const quantity = extractQuantity(afterProduct);
+
+  return quantity ? [toMatchedOrderItem(product, quantity)] : [];
+}
+
 async function buildAiNaturalReply({
   customerMessage,
   intent,
@@ -270,7 +441,7 @@ export async function POST(request: Request) {
     }
 
     const payload = await parseJson(request, openClawWebhookSchema);
-    const intent = await detectIntent(payload.message);
+    let intent = await detectIntent(payload.message);
 
     if (!isSupabaseAdminConfigured()) {
       const order = demoOrders.find((item) => item.order_code === intent.order_code);
@@ -397,6 +568,36 @@ export async function POST(request: Request) {
     const conversationHistory = await getConversationHistory(supabase, conversation?.id);
     let reply = buildFallbackReply(business.name, payload.message);
     let createdOrder: Order | null = null;
+    let forcedMatchedItems: MatchedOrderItem[] = [];
+
+    if (intent.intent === "UNKNOWN" && isAffirmation(payload.message)) {
+      const pendingItems = getPendingOrderFromLastBot(conversationHistory, products);
+      forcedMatchedItems = pendingItems.length
+        ? pendingItems
+        : inferMatchedItemsFromMessage(payload.message, products, conversationHistory);
+    }
+
+    if (intent.intent === "UNKNOWN" && !forcedMatchedItems.length) {
+      forcedMatchedItems = inferMatchedItemsFromMessage(
+        payload.message,
+        products,
+        conversationHistory,
+      );
+    }
+
+    if (forcedMatchedItems.length) {
+      intent = {
+        ...intent,
+        intent: "CREATE_ORDER",
+        items: forcedMatchedItems.map((item) => ({
+          product_name: item.product.name,
+          variant_name: item.variant?.name ?? null,
+          quantity: item.quantity,
+          notes: null,
+        })),
+        confidence: Math.max(intent.confidence, 0.78),
+      };
+    }
 
     if (intent.intent === "ASK_STOCK") {
       const productQuery = extractProductQuery(payload.message);
@@ -446,28 +647,17 @@ export async function POST(request: Request) {
     }
 
     if (intent.intent === "CREATE_ORDER") {
-      const matchedItems = intent.items
-        .map((item) => {
-          const product = matchProduct(products, item.product_name);
-          const variant = product?.variants?.find((candidate) => candidate.is_active) ?? null;
+      let matchedItems = forcedMatchedItems.length
+        ? forcedMatchedItems
+        : buildMatchedItemsFromIntent(intent.items, products);
 
-          if (!product) {
-            return null;
-          }
-
-          return {
-            product,
-            variant,
-            quantity: item.quantity,
-            total: product.price * item.quantity,
-          };
-        })
-        .filter(Boolean) as Array<{
-        product: Product;
-        variant: ProductVariant | null;
-        quantity: number;
-        total: number;
-      }>;
+      if (!matchedItems.length) {
+        matchedItems = inferMatchedItemsFromMessage(
+          payload.message,
+          products,
+          conversationHistory,
+        );
+      }
 
       if (!matchedItems.length) {
         reply = "Bisa, kak. Mau pesan produk yang mana dan berapa banyak? Kalau belum tahu pilihannya, aku bisa kirim menu yang tersedia.";
