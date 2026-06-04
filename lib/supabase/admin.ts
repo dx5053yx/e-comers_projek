@@ -1,0 +1,21 @@
+import { createClient } from "@supabase/supabase-js";
+import { assertServerEnv } from "@/lib/utils";
+
+export function isSupabaseAdminConfigured() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
+}
+
+export function createSupabaseAdminClient() {
+  return createClient(
+    assertServerEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    assertServerEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    },
+  );
+}

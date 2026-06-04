@@ -1,0 +1,21 @@
+services:
+  openclaw:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-c", "npm install && npm start"]
+    environment:
+      NEXT_WEBHOOK_URL: "https://sipandu.vercel.app/api/webhooks/openclaw"
+      OPENCLAW_WEBHOOK_SECRET: "change-me"
+      OPENCLAW_BOT_API_SECRET: "change-me"
+      OPENCLAW_BOT_API_PORT: "3020"
+      OPENCLAW_SESSION_PATH: "/data/openclaw-session"
+      OPENCLAW_ALLOWLIST: ""
+    ports:
+      - "3020:3020"
+    volumes:
+      - ./:/app
+      - openclaw-session:/data/openclaw-session
+    restart: unless-stopped
+
+volumes:
+  openclaw-session:

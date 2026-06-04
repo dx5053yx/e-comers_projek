@@ -1,0 +1,5 @@
+openclaw-bot/node_modules
+openclaw-bot/session
+openclaw-bot/*.log
+.env*
+!.env.example
