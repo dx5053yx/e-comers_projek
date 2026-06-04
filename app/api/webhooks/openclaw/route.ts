@@ -3,7 +3,7 @@ import { generateWhatsAppReply } from "@/lib/ai/gemini";
 import { handleRouteError, jsonError, jsonOk, parseJson } from "@/lib/api";
 import { demoBusiness, demoOrders, demoProducts } from "@/lib/data/demo";
 import { calculateOrderTotal } from "@/lib/orders/calculate-total";
-import { generateOrderCode } from "@/lib/orders/generate-code";
+import { generateAvailableOrderCode } from "@/lib/orders/generate-code";
 import { createSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import type { Order, Product, ProductVariant } from "@/lib/types";
 import { openClawWebhookSchema } from "@/lib/validations/schemas";
@@ -662,25 +662,19 @@ export async function POST(request: Request) {
       if (!matchedItems.length) {
         reply = "Bisa, kak. Mau pesan produk yang mana dan berapa banyak? Kalau belum tahu pilihannya, aku bisa kirim menu yang tersedia.";
       } else {
-        const today = new Date();
-        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-        const { count } = await supabase
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("business_id", business.id)
-          .gte("created_at", start);
         const totals = calculateOrderTotal({
           items: matchedItems.map((item) => ({
             quantity: item.quantity,
             price: item.product.price,
           })),
         });
+        const orderCode = await generateAvailableOrderCode(supabase);
         const { data: order, error: orderError } = await supabase
           .from("orders")
           .insert({
             business_id: business.id,
             customer_id: customer?.id,
-            order_code: generateOrderCode((count ?? 0) + 1, today),
+            order_code: orderCode,
             source: "WHATSAPP",
             status: "PENDING_PAYMENT",
             subtotal: totals.subtotal,

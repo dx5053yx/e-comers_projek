@@ -15,6 +15,8 @@ export async function parseJson<T>(request: Request, schema: ZodSchema<T>) {
 }
 
 export function handleRouteError(error: unknown) {
+  console.error("Route error:", error);
+
   if (error instanceof ZodError) {
     return jsonError("Input tidak valid.", 422, error.flatten());
   }

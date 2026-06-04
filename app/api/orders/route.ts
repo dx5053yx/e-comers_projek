@@ -1,7 +1,7 @@
 import { handleRouteError, jsonError, jsonOk, parseJson } from "@/lib/api";
 import { getOrders, isDemoMode } from "@/lib/data/queries";
 import { calculateOrderTotal } from "@/lib/orders/calculate-total";
-import { generateOrderCode } from "@/lib/orders/generate-code";
+import { generateAvailableOrderCode } from "@/lib/orders/generate-code";
 import { createSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { isSupabaseServerConfigured } from "@/lib/supabase/server";
 import { orderSchema } from "@/lib/validations/schemas";
@@ -72,26 +72,19 @@ export async function POST(request: Request) {
       customerId = customer.id;
     }
 
-    const today = new Date();
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-    const { count } = await supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("business_id", input.business_id)
-      .gte("created_at", start);
-
     const totals = calculateOrderTotal({
       items: input.items,
       discountTotal: input.discount_total,
       shippingCost: input.shipping_cost,
     });
+    const orderCode = await generateAvailableOrderCode(supabase);
 
     const { data: order, error } = await supabase
       .from("orders")
       .insert({
         business_id: input.business_id,
         customer_id: customerId,
-        order_code: generateOrderCode((count ?? 0) + 1, today),
+        order_code: orderCode,
         source: input.source,
         status: "PENDING_PAYMENT",
         subtotal: totals.subtotal,
