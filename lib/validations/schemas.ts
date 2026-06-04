@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseRupiahInput } from "@/lib/utils";
 
 const nullableOptionalText = z
   .string()
@@ -51,7 +52,10 @@ export const productSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Slug hanya boleh huruf kecil, angka, dan tanda hubung."),
   description: nullableOptionalText,
   sku: nullableOptionalText,
-  price: z.coerce.number().positive("Harga harus lebih dari 0."),
+  price: z.preprocess(
+    parseRupiahInput,
+    z.coerce.number().positive("Harga harus lebih dari 0."),
+  ),
   image_url: optionalUrl,
   is_active: z.coerce.boolean().default(true),
   variants: z
@@ -60,7 +64,7 @@ export const productSchema = z.object({
         id: z.string().uuid().optional(),
         name: z.string().trim().min(1, "Nama varian wajib diisi."),
         sku: nullableOptionalText,
-        price_adjustment: z.coerce.number().default(0),
+        price_adjustment: z.preprocess(parseRupiahInput, z.coerce.number().default(0)),
         stock: z.coerce.number().int().min(0, "Stok tidak boleh minus.").default(0),
         low_stock_threshold: z.coerce
           .number()
@@ -97,7 +101,10 @@ export const orderItemInputSchema = z.object({
   product_name: z.string().min(1),
   variant_name: z.string().optional().nullable(),
   quantity: z.coerce.number().int().positive("Jumlah minimal 1."),
-  price: z.coerce.number().positive("Harga item harus lebih dari 0."),
+  price: z.preprocess(
+    parseRupiahInput,
+    z.coerce.number().positive("Harga item harus lebih dari 0."),
+  ),
 });
 
 export const orderSchema = z.object({

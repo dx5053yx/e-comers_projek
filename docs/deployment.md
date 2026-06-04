@@ -47,7 +47,7 @@ npm start
 ```
 
 3. Buka tunnel publik ke port bot, misalnya `cloudflared tunnel --url http://localhost:3020` atau `ngrok http 3020`.
-4. Set `OPENCLAW_BOT_API_URL` di Vercel ke URL tunnel tersebut.
+4. Set `OPENCLAW_BOT_API_URL` di Vercel ke URL tunnel tersebut. 
 5. Set `NEXT_WEBHOOK_URL` di environment bot ke URL Vercel:
 
 ```env

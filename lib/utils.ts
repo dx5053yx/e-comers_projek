@@ -17,6 +17,31 @@ export function formatCurrency(value: number | string | null | undefined) {
   }).format(amount);
 }
 
+export function parseRupiahInput(value: unknown) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return value;
+  }
+
+  const isNegative = trimmed.startsWith("-");
+  const digits = trimmed.replace(/\D/g, "");
+
+  if (!digits) {
+    return value;
+  }
+
+  return Number(`${isNegative ? "-" : ""}${digits}`);
+}
+
 export function formatDate(value: string | Date) {
   return format(new Date(value), "dd MMM yyyy", { locale: id });
 }

@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label, Textarea } from "@/components/ui/form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Product } from "@/lib/types";
-import { slugify } from "@/lib/utils";
+import { parseRupiahInput, slugify } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().trim().min(2, "Nama produk minimal 2 karakter."),
@@ -23,7 +23,10 @@ const formSchema = z.object({
     .optional(),
   sku: z.string().trim().max(64, "SKU maksimal 64 karakter.").optional(),
   description: z.string().trim().max(1000, "Deskripsi maksimal 1000 karakter.").optional(),
-  price: z.coerce.number().positive("Harga harus lebih dari 0."),
+  price: z.preprocess(
+    parseRupiahInput,
+    z.coerce.number().positive("Harga harus lebih dari 0."),
+  ),
   image_url: z.string().trim().url("URL foto tidak valid.").optional().or(z.literal("")),
   is_active: z.coerce.boolean().default(true),
   variant_name: z.string().trim().min(1, "Nama varian wajib diisi."),
@@ -201,12 +204,14 @@ export function ProductForm({
             <Label htmlFor="price">Harga</Label>
             <Input
               id="price"
-              min={1}
-              step={500}
-              type="number"
+              inputMode="numeric"
+              placeholder="Contoh: 13.000"
               aria-invalid={Boolean(form.formState.errors.price)}
               {...form.register("price")}
             />
+            <p className="text-xs text-muted-foreground">
+              Boleh pakai titik ribuan, contoh 13.000.
+            </p>
             <FieldError message={form.formState.errors.price?.message} />
           </div>
           <div className="space-y-2 md:col-span-2">
