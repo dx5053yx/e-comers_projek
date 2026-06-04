@@ -129,6 +129,7 @@ Buka terminal pertama:
 ```bash
 cd /home/akiru/Documents/SiPandu/openclaw-bot
 npm start
+ngrok http 3020 --url https://trespass-vacant-guidable.ngrok-free.dev
 ```
 
 Tanda bot berhasil hidup:

@@ -88,6 +88,29 @@ export default async function OrderDetailPage({
               </Badge>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bukti pembayaran</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm">
+              {order.payment?.proof_url ? (
+                <a
+                  className="font-medium text-primary"
+                  href={order.payment.proof_url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Buka bukti transfer
+                </a>
+              ) : (
+                <p className="text-muted-foreground">Belum ada bukti pembayaran.</p>
+              )}
+              {order.payment?.note ? (
+                <p className="text-muted-foreground">{order.payment.note}</p>
+              ) : null}
+            </CardContent>
+          </Card>
         </div>
         <OrderActions order={order} />
       </div>

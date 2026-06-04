@@ -1,5 +1,6 @@
 import makeWASocket, {
   DisconnectReason,
+  downloadMediaMessage,
   fetchLatestBaileysVersion,
   useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
@@ -12,6 +13,7 @@ const config = loadConfig();
 const logger = pino({ level: config.logLevel });
 const sessions = new Map();
 const seenMessages = new Set();
+const MAX_WEBHOOK_MEDIA_BYTES = 3 * 1024 * 1024;
 
 function jsonResponse(response, status, payload) {
   response.writeHead(status, { "Content-Type": "application/json" });
@@ -125,6 +127,65 @@ function extractText(message) {
   ).trim();
 }
 
+function extractMediaDescriptor(message) {
+  const content = unwrapMessage(message.message);
+
+  if (content?.imageMessage) {
+    return {
+      type: "image",
+      mimeType: content.imageMessage.mimetype ?? "image/jpeg",
+      caption: content.imageMessage.caption ?? "",
+    };
+  }
+
+  return null;
+}
+
+async function extractMediaPayload(sock, message) {
+  const descriptor = extractMediaDescriptor(message);
+
+  if (!descriptor) {
+    return null;
+  }
+
+  try {
+    const buffer = await downloadMediaMessage(
+      message,
+      "buffer",
+      {},
+      {
+        logger,
+        reuploadRequest: sock.updateMediaMessage,
+      },
+    );
+
+    if (!Buffer.isBuffer(buffer)) {
+      return descriptor;
+    }
+
+    if (buffer.byteLength > MAX_WEBHOOK_MEDIA_BYTES) {
+      return {
+        ...descriptor,
+        tooLarge: true,
+        size: buffer.byteLength,
+      };
+    }
+
+    return {
+      ...descriptor,
+      size: buffer.byteLength,
+      dataBase64: buffer.toString("base64"),
+    };
+  } catch (error) {
+    logger.warn({ error: error.message }, "Gagal mengunduh media WhatsApp");
+
+    return {
+      ...descriptor,
+      downloadError: error.message,
+    };
+  }
+}
+
 function messageTimestampToIso(timestamp) {
   if (!timestamp) {
     return new Date().toISOString();
@@ -221,9 +282,10 @@ async function handleIncomingMessage(session, sock, message) {
     return;
   }
 
-  const text = extractText(message);
+  const media = await extractMediaPayload(sock, message);
+  const text = extractText(message) || media?.caption || (media?.type === "image" ? "Bukti pembayaran" : "");
 
-  if (!text) {
+  if (!text && !media) {
     return;
   }
 
@@ -237,6 +299,7 @@ async function handleIncomingMessage(session, sock, message) {
       remoteJid,
       participant: message.key.participant ?? null,
       pushName: message.pushName ?? null,
+      media,
     },
   };
 

@@ -34,6 +34,19 @@ type MatchedOrderItem = {
   total: number;
 };
 
+type AdminSupabaseClient = ReturnType<typeof createSupabaseAdminClient>;
+
+type IncomingMedia = {
+  type?: string;
+  mimeType?: string;
+  caption?: string;
+  dataBase64?: string;
+  tooLarge?: boolean;
+  downloadError?: string;
+};
+
+type PaymentProofRetryReason = "TOO_LARGE" | "DOWNLOAD_FAILED";
+
 function normalize(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -170,6 +183,193 @@ function getCustomerNameFromWebhook(raw: Record<string, unknown>, phone: string)
   }
 
   return name.slice(0, 80);
+}
+
+function getIncomingMedia(raw: Record<string, unknown>) {
+  const media = raw.media;
+
+  if (!media || typeof media !== "object" || Array.isArray(media)) {
+    return null;
+  }
+
+  return media as IncomingMedia;
+}
+
+function sanitizeRawPayload(raw: Record<string, unknown>) {
+  const media = getIncomingMedia(raw);
+
+  if (!media) {
+    return raw;
+  }
+
+  const safeMedia = { ...media };
+  delete safeMedia.dataBase64;
+
+  return {
+    ...raw,
+    media: safeMedia,
+  };
+}
+
+function extractOrderCode(message: string) {
+  return message.match(/SP-\d{8}-\d{3}/i)?.[0]?.toUpperCase() ?? null;
+}
+
+function paymentProofExtension(mimeType?: string) {
+  if (mimeType?.includes("png")) {
+    return "png";
+  }
+
+  if (mimeType?.includes("webp")) {
+    return "webp";
+  }
+
+  return "jpg";
+}
+
+async function uploadPaymentProofImage({
+  supabase,
+  businessId,
+  orderId,
+  media,
+}: {
+  supabase: AdminSupabaseClient;
+  businessId: string;
+  orderId: string;
+  media: IncomingMedia;
+}) {
+  if (!media.dataBase64) {
+    return null;
+  }
+
+  const imageBuffer = Buffer.from(media.dataBase64, "base64");
+
+  if (!imageBuffer.byteLength) {
+    return null;
+  }
+
+  const bucket = process.env.SUPABASE_PAYMENT_PROOFS_BUCKET ?? "payment-proofs";
+  const extension = paymentProofExtension(media.mimeType);
+  const randomId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`;
+  const path = `${businessId}/${orderId}/${Date.now()}-${randomId}.${extension}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, imageBuffer, {
+    contentType: media.mimeType ?? "image/jpeg",
+    upsert: false,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data, error: signedUrlError } = await supabase
+    .storage
+    .from(bucket)
+    .createSignedUrl(path, 60 * 60 * 24 * 30);
+
+  if (signedUrlError) {
+    throw signedUrlError;
+  }
+
+  return data.signedUrl;
+}
+
+async function recordPaymentProofFromMedia({
+  supabase,
+  businessId,
+  customerId,
+  message,
+  raw,
+}: {
+  supabase: AdminSupabaseClient;
+  businessId: string;
+  customerId?: string | null;
+  message: string;
+  raw: Record<string, unknown>;
+}) {
+  const media = getIncomingMedia(raw);
+
+  if (media?.type !== "image") {
+    return null;
+  }
+
+  if (!media.dataBase64) {
+    const reason: PaymentProofRetryReason = media.tooLarge
+      ? "TOO_LARGE"
+      : "DOWNLOAD_FAILED";
+
+    return {
+      status: "MEDIA_UNAVAILABLE" as const,
+      reason,
+    };
+  }
+
+  const orderCode = extractOrderCode(`${message} ${media.caption ?? ""}`);
+  const query = supabase
+    .from("orders")
+    .select("id, order_code, grand_total")
+    .eq("business_id", businessId)
+    .eq("payment_status", "PENDING")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const { data: order, error } = orderCode
+    ? await query.eq("order_code", orderCode).maybeSingle()
+    : customerId
+      ? await query.eq("customer_id", customerId).maybeSingle()
+      : { data: null, error: null };
+
+  if (error) {
+    throw error;
+  }
+
+  if (!order) {
+    return {
+      status: "NO_PENDING_ORDER" as const,
+    };
+  }
+
+  const proofUrl = await uploadPaymentProofImage({
+    supabase,
+    businessId,
+    orderId: order.id,
+    media,
+  });
+
+  const { error: paymentError } = await supabase
+    .from("payments")
+    .upsert(
+      {
+        order_id: order.id,
+        amount: order.grand_total,
+        status: "PENDING",
+        proof_url: proofUrl,
+        note: `Bukti pembayaran dikirim via WhatsApp. Caption: ${message}`,
+      },
+      { onConflict: "order_id" },
+    );
+
+  if (paymentError) {
+    throw paymentError;
+  }
+
+  return {
+    status: "RECORDED" as const,
+    orderCode: order.order_code,
+  };
+}
+
+function buildPaymentProofReceivedReply(orderCode: string) {
+  return `Makasih kak, bukti pembayaran untuk ${orderCode} sudah aku terima. Aku teruskan ke admin buat dicek dulu ya. Nanti kalau sudah diverifikasi, status pesanannya aku update.`;
+}
+
+function buildPaymentProofRetryReply(reason: PaymentProofRetryReason) {
+  return reason === "TOO_LARGE"
+    ? "Aku sudah lihat kakaknya kirim bukti, tapi file gambarnya terlalu besar buat kusimpan otomatis. Coba kirim ulang screenshot yang lebih kecil atau lebih sederhana ya kak."
+    : "Aku sudah lihat kakaknya kirim bukti, tapi gambarnya belum berhasil kusimpan. Coba kirim ulang screenshot bukti transfernya ya kak.";
+}
+
+function buildPaymentProofNoOrderReply() {
+  return "Bukti transfernya sudah masuk sebagai gambar, kak. Tapi aku belum menemukan order yang masih menunggu pembayaran dari nomor ini. Boleh kirim kode ordernya juga? Contohnya SP-20260604-005.";
 }
 
 function productNamesStillPresent(
@@ -560,7 +760,7 @@ export async function POST(request: Request) {
         conversation_id: conversation.id,
         sender_type: "CUSTOMER",
         message: payload.message,
-        raw_payload: payload.raw,
+        raw_payload: sanitizeRawPayload(payload.raw),
       });
     }
 
@@ -569,15 +769,53 @@ export async function POST(request: Request) {
     let reply = buildFallbackReply(business.name, payload.message);
     let createdOrder: Order | null = null;
     let forcedMatchedItems: MatchedOrderItem[] = [];
+    let shouldNaturalizeReply = true;
+    const paymentProof = await recordPaymentProofFromMedia({
+      supabase,
+      businessId: business.id,
+      customerId: customer?.id,
+      message: payload.message,
+      raw: payload.raw,
+    });
 
-    if (intent.intent === "UNKNOWN" && isAffirmation(payload.message)) {
+    if (paymentProof?.status === "RECORDED") {
+      reply = buildPaymentProofReceivedReply(paymentProof.orderCode);
+      shouldNaturalizeReply = false;
+      intent = {
+        ...intent,
+        intent: "ASK_PAYMENT_METHOD",
+        confidence: Math.max(intent.confidence, 0.9),
+      };
+    }
+
+    if (paymentProof?.status === "MEDIA_UNAVAILABLE") {
+      reply = buildPaymentProofRetryReply(paymentProof.reason);
+      shouldNaturalizeReply = false;
+      intent = {
+        ...intent,
+        intent: "ASK_PAYMENT_METHOD",
+        confidence: Math.max(intent.confidence, 0.8),
+      };
+    }
+
+    if (paymentProof?.status === "NO_PENDING_ORDER") {
+      reply = buildPaymentProofNoOrderReply();
+      shouldNaturalizeReply = false;
+      intent = {
+        ...intent,
+        intent: "CHECK_ORDER_STATUS",
+        confidence: Math.max(intent.confidence, 0.75),
+      };
+    }
+
+    if (!paymentProof && intent.intent === "UNKNOWN" && isAffirmation(payload.message)) {
       const pendingItems = getPendingOrderFromLastBot(conversationHistory, products);
       forcedMatchedItems = pendingItems.length
         ? pendingItems
         : inferMatchedItemsFromMessage(payload.message, products, conversationHistory);
     }
 
-    if (intent.intent === "UNKNOWN" && !forcedMatchedItems.length) {
+    if (!paymentProof && intent.intent === "UNKNOWN" && !forcedMatchedItems.length) {
       forcedMatchedItems = inferMatchedItemsFromMessage(
         payload.message,
         products,
@@ -585,7 +823,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (forcedMatchedItems.length) {
+    if (!paymentProof && forcedMatchedItems.length) {
       intent = {
         ...intent,
         intent: "CREATE_ORDER",
@@ -599,7 +837,7 @@ export async function POST(request: Request) {
       };
     }
 
-    if (intent.intent === "ASK_STOCK") {
+    if (!paymentProof && intent.intent === "ASK_STOCK") {
       const productQuery = extractProductQuery(payload.message);
       reply = buildAvailabilityReply({
         product: productQuery ? matchProduct(products, productQuery) : null,
@@ -608,11 +846,11 @@ export async function POST(request: Request) {
       });
     }
 
-    if (intent.intent === "ASK_PRODUCT" || intent.intent === "ASK_PRICE") {
+    if (!paymentProof && (intent.intent === "ASK_PRODUCT" || intent.intent === "ASK_PRICE")) {
       reply = buildProductListReply(business.name, products);
     }
 
-    if (intent.intent === "ASK_PAYMENT_METHOD") {
+    if (!paymentProof && intent.intent === "ASK_PAYMENT_METHOD") {
       reply = buildPaymentMethodReply(
         business.name,
         business.payment_instructions,
@@ -620,15 +858,15 @@ export async function POST(request: Request) {
       );
     }
 
-    if (intent.intent === "ASK_DELIVERY") {
+    if (!paymentProof && intent.intent === "ASK_DELIVERY") {
       reply = buildDeliveryReply(business.name, business.address);
     }
 
-    if (intent.intent === "TALK_TO_ADMIN") {
+    if (!paymentProof && intent.intent === "TALK_TO_ADMIN") {
       reply = buildTalkToAdminReply();
     }
 
-    if (intent.intent === "CHECK_ORDER_STATUS") {
+    if (!paymentProof && intent.intent === "CHECK_ORDER_STATUS") {
       const orderCode = intent.order_code;
 
       if (!orderCode) {
@@ -646,7 +884,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (intent.intent === "CREATE_ORDER") {
+    if (!paymentProof && intent.intent === "CREATE_ORDER") {
       let matchedItems = forcedMatchedItems.length
         ? forcedMatchedItems
         : buildMatchedItemsFromIntent(intent.items, products);
@@ -730,14 +968,16 @@ export async function POST(request: Request) {
       }
     }
 
-    reply = await buildAiNaturalReply({
-      customerMessage: payload.message,
-      intent: intent.intent,
-      business,
-      products,
-      draftReply: reply,
-      conversationHistory,
-    });
+    if (shouldNaturalizeReply) {
+      reply = await buildAiNaturalReply({
+        customerMessage: payload.message,
+        intent: intent.intent,
+        business,
+        products,
+        draftReply: reply,
+        conversationHistory,
+      });
+    }
 
     if (conversation) {
       await supabase.from("messages").insert({
