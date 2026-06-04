@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { ProductActions } from "@/components/products/product-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Td, Th, Table } from "@/components/ui/table";
@@ -55,9 +55,11 @@ export default async function ProductsPage() {
                       </Badge>
                     </Td>
                     <Td>
-                      <Link className="font-medium text-primary" href={`/dashboard/products/${product.id}/edit`}>
-                        Edit
-                      </Link>
+                      <ProductActions
+                        productId={product.id}
+                        productName={product.name}
+                        isActive={product.is_active}
+                      />
                     </Td>
                   </tr>
                 ))}
