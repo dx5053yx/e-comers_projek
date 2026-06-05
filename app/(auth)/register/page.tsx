@@ -36,23 +36,23 @@ export default async function RegisterPage({
           <form action={registerAction} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="full_name">Nama pemilik</Label>
-              <Input id="full_name" name="full_name" required />
+              <Input id="full_name" name="full_name" placeholder="Contoh: Aqil Fachri" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="business_name">Nama bisnis</Label>
-              <Input id="business_name" name="business_name" placeholder="Warung Seblak Ibu Ani" required />
+              <Input id="business_name" name="business_name" placeholder="Contoh: Warung Seblak Ibu Ani" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="whatsapp_number">Nomor WhatsApp</Label>
-              <Input id="whatsapp_number" name="whatsapp_number" placeholder="+6281234567890" />
+              <Input id="whatsapp_number" name="whatsapp_number" placeholder="Contoh: +6281234567890" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" required />
+              <Input id="email" name="email" type="email" placeholder="Contoh: owner@sipandu.id" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" minLength={8} required />
+              <Input id="password" name="password" type="password" minLength={8} placeholder="Minimal 8 karakter" required />
             </div>
             <Button className="w-full" type="submit">
               Buat akun

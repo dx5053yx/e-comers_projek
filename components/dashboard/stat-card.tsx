@@ -13,7 +13,7 @@ export function StatCard({
   icon: LucideIcon;
 }) {
   return (
-    <Card className="transition hover:border-primary/25 hover:shadow-[0_10px_24px_rgba(16,37,40,0.08)]">
+    <Card className="transition hover:border-primary/35 hover:shadow-lg hover:shadow-primary/10">
       <CardContent className="flex items-start justify-between gap-4 p-5">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">

@@ -14,14 +14,20 @@ export function SalesChartInner({
         <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="salesFill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="5%" stopColor="#0f6b57" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#0f6b57" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.32} />
+              <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.03} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#e4ded2" strokeDasharray="3 3" />
-          <XAxis dataKey="date" tickLine={false} axisLine={false} />
+          <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+          <XAxis
+            dataKey="date"
+            tick={{ fill: "var(--muted-foreground)" }}
+            tickLine={false}
+            axisLine={false}
+          />
           <YAxis
             tickFormatter={(value) => `${Number(value) / 1000}k`}
+            tick={{ fill: "var(--muted-foreground)" }}
             tickLine={false}
             axisLine={false}
           />
@@ -29,12 +35,18 @@ export function SalesChartInner({
             formatter={(value, name) =>
               name === "sales" ? formatCurrency(Number(value)) : Number(value)
             }
+            contentStyle={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+              color: "var(--foreground)",
+            }}
             labelClassName="font-medium"
           />
           <Area
             type="monotone"
             dataKey="sales"
-            stroke="#0f6b57"
+            stroke="var(--primary)"
             strokeWidth={2}
             fill="url(#salesFill)"
           />

@@ -1,23 +1,72 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f7f3;
-  --foreground: #102528;
+  color-scheme: light;
+  --background: #eef6f1;
+  --foreground: #071e16;
   --card: #ffffff;
-  --card-foreground: #102528;
-  --muted: #e5eee8;
-  --muted-foreground: #64716d;
-  --primary: #178a4f;
+  --card-foreground: #071e16;
+  --muted: #dcebe3;
+  --muted-foreground: #40594c;
+  --primary: #0b9f55;
   --primary-foreground: #ffffff;
-  --secondary: #073f4a;
+  --secondary: #073645;
   --secondary-foreground: #ffffff;
-  --accent: #c9a141;
-  --accent-foreground: #102528;
-  --border: #ccd9d2;
+  --accent: #d5a72d;
+  --accent-foreground: #071e16;
+  --border: #b8d0c1;
   --danger: #b42318;
-  --success: #087443;
-  --warning: #b76e00;
+  --success: #057a3d;
+  --warning: #9a5b00;
+  --body-background: linear-gradient(180deg, rgba(220, 235, 227, 0.68), rgba(238, 246, 241, 0) 260px), var(--background);
+  --card-shadow: 0 1px 2px rgba(7, 30, 22, 0.08);
+  --landing-bg: #f4fbf7;
+  --landing-surface: #ffffff;
+  --landing-soft: #e6f6ed;
+  --landing-text: #071e16;
+  --landing-muted: #40594c;
+  --landing-border: #b8d0c1;
+  --landing-hero-overlay: linear-gradient(90deg, #f7fcf9 0%, rgba(247, 252, 249, 0.92) 38%, rgba(247, 252, 249, 0.64) 100%);
+  --landing-hero-fade: linear-gradient(180deg, rgba(247, 252, 249, 0), #f7fcf9);
+  --landing-chat-left: #dcecff;
+  --landing-chat-right: #d5f8e1;
+  --landing-premium: #0d3322;
+  --landing-footer: #0b2a1c;
   --radius: 0.5rem;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #071411;
+  --foreground: #f0fbf5;
+  --card: #0f2119;
+  --card-foreground: #f0fbf5;
+  --muted: #1a332a;
+  --muted-foreground: #b9d2c6;
+  --primary: #36d177;
+  --primary-foreground: #04130b;
+  --secondary: #7dd3fc;
+  --secondary-foreground: #03131a;
+  --accent: #f3c84b;
+  --accent-foreground: #1d1600;
+  --border: #2b4a3c;
+  --danger: #ff6b5f;
+  --success: #5ee092;
+  --warning: #ffc766;
+  --body-background: linear-gradient(180deg, rgba(26, 51, 42, 0.6), rgba(7, 20, 17, 0) 260px), var(--background);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.38);
+  --landing-bg: #071411;
+  --landing-surface: #0f2119;
+  --landing-soft: #183629;
+  --landing-text: #f0fbf5;
+  --landing-muted: #b9d2c6;
+  --landing-border: #2b4a3c;
+  --landing-hero-overlay: linear-gradient(90deg, #071411 0%, rgba(7, 20, 17, 0.88) 42%, rgba(7, 20, 17, 0.56) 100%);
+  --landing-hero-fade: linear-gradient(180deg, rgba(7, 20, 17, 0), #071411);
+  --landing-chat-left: #162f4b;
+  --landing-chat-right: #123927;
+  --landing-premium: #123927;
+  --landing-footer: #04100c;
 }
 
 @theme inline {
@@ -52,9 +101,7 @@ html {
 body {
   min-height: 100vh;
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  background:
-    linear-gradient(180deg, rgba(229, 238, 232, 0.48), rgba(244, 247, 243, 0) 220px),
-    var(--background);
+  background: var(--body-background);
 }
 
 ::selection {
@@ -84,5 +131,5 @@ textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
-  box-shadow: 0 1px 2px rgba(16, 37, 40, 0.04);
+  box-shadow: var(--card-shadow);
 }

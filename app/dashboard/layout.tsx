@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentBusiness, isDemoMode } from "@/lib/data/queries";
 import { formatWhatsAppNumber } from "@/lib/whatsapp";
@@ -69,6 +70,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               {business?.slug ? (
                 <Link
                   className="hidden h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium text-muted-foreground transition hover:border-primary/30 hover:text-foreground sm:inline-flex"

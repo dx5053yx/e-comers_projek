@@ -24,7 +24,7 @@ type StatusResponse = {
 };
 
 const defaultPrompt =
-  "Default: AI membalas seperti admin toko yang ramah, santai, tidak kaku, dan tetap menjaga fakta produk, harga, stok, order, pembayaran, serta QRIS.";
+  "Default: AI membalas seperti admin toko yang ramah sekaligus sales. Setelah menjawab pertanyaan, AI boleh menawarkan produk ready, bantu pilih menu, tanya jumlah, dan mengarahkan customer ke order secara halus. Tetap wajib menjaga fakta produk, harga, stok, order, pembayaran, dan QRIS.";
 
 export function WhatsAppConnectionPanel({ business }: { business: Business }) {
   const [status, setStatus] = useState<StatusResponse | null>(null);

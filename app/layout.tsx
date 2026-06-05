@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { getAppUrl } from "@/lib/utils";
 import "./globals.css";
 
@@ -72,8 +73,22 @@ export default function RootLayout({
     <html
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground">{children}</body>
+      <body className="min-h-full bg-background text-foreground">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`
+            try {
+              const saved = localStorage.getItem("sipandu-theme");
+              const theme = saved === "dark" || saved === "light"
+                ? saved
+                : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+              document.documentElement.dataset.theme = theme;
+            } catch {}
+          `}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }

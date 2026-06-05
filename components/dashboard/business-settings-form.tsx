@@ -144,15 +144,32 @@ export function BusinessSettingsForm({ business }: { business: Business }) {
       ) : null}
       <div className="grid gap-2">
         <Label htmlFor="name">Nama bisnis</Label>
-        <Input id="name" name="name" defaultValue={business.name} required />
+        <Input
+          id="name"
+          name="name"
+          defaultValue={business.name}
+          placeholder="Contoh: Warung Bakso Pak Budi"
+          required
+        />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="slug">Slug katalog</Label>
-        <Input id="slug" name="slug" defaultValue={business.slug} required />
+        <Input
+          id="slug"
+          name="slug"
+          defaultValue={business.slug}
+          placeholder="Contoh: warung-bakso-pak-budi"
+          required
+        />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="category">Kategori</Label>
-        <Input id="category" name="category" defaultValue={business.category ?? ""} />
+        <Input
+          id="category"
+          name="category"
+          defaultValue={business.category ?? ""}
+          placeholder="Contoh: Kuliner / Fashion / Kerajinan"
+        />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="whatsapp_number">Nomor WhatsApp</Label>
@@ -160,16 +177,26 @@ export function BusinessSettingsForm({ business }: { business: Business }) {
           id="whatsapp_number"
           name="whatsapp_number"
           defaultValue={business.whatsapp_number ?? ""}
-          placeholder="+6281234567890"
+          placeholder="Contoh: +6281234567890"
         />
       </div>
       <div className="grid gap-2 md:col-span-2">
         <Label htmlFor="address">Alamat</Label>
-        <Textarea id="address" name="address" defaultValue={business.address ?? ""} />
+        <Textarea
+          id="address"
+          name="address"
+          defaultValue={business.address ?? ""}
+          placeholder="Contoh: Jl. Letkol Iskandar No. 10, Purbalingga"
+        />
       </div>
       <div className="grid gap-2 md:col-span-2">
         <Label htmlFor="description">Deskripsi</Label>
-        <Textarea id="description" name="description" defaultValue={business.description ?? ""} />
+        <Textarea
+          id="description"
+          name="description"
+          defaultValue={business.description ?? ""}
+          placeholder="Contoh: Menjual bakso rumahan, minuman dingin, dan menerima pesanan lewat WhatsApp."
+        />
       </div>
       <div className="grid gap-2 md:col-span-2">
         <Label htmlFor="payment_instructions">Instruksi pembayaran</Label>
@@ -177,6 +204,7 @@ export function BusinessSettingsForm({ business }: { business: Business }) {
           id="payment_instructions"
           name="payment_instructions"
           defaultValue={business.payment_instructions ?? ""}
+          placeholder="Contoh: Transfer/scan QRIS sesuai nominal order, lalu kirim bukti pembayaran ke WhatsApp."
         />
       </div>
       <div className="grid gap-2 md:col-span-2">
@@ -222,6 +250,7 @@ export function BusinessSettingsForm({ business }: { business: Business }) {
           type="url"
           value={qrisImageUrl}
           onChange={(event) => setQrisImageUrl(event.target.value)}
+          placeholder="Contoh: https://domain.com/qris-toko.jpg"
         />
       </div>
       <div className="md:col-span-2">

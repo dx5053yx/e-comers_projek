@@ -44,7 +44,11 @@ export function ReviewForm({ orderCode }: { orderCode: string }) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="comment">Komentar</Label>
-        <Textarea id="comment" name="comment" />
+        <Textarea
+          id="comment"
+          name="comment"
+          placeholder="Contoh: Makanannya enak, pengiriman cepat, pedasnya pas."
+        />
       </div>
       <Button type="submit">
         <Star className="h-4 w-4" aria-hidden />

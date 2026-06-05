@@ -133,7 +133,7 @@ export const orderStatusSchema = z.object({
 });
 
 export const shipmentSchema = z.object({
-  courier: z.string().trim().min(2, "Kurir minimal 2 karakter."),
+  courier: nullableOptionalText,
   tracking_number: nullableOptionalText,
   status: z
     .enum(["NOT_SHIPPED", "READY_TO_SHIP", "SHIPPED", "DELIVERED", "RETURNED"])

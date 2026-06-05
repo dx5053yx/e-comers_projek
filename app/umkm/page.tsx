@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { UmkmDirectoryList } from "@/components/public/umkm-directory-list";
 import { getPublicBusinesses } from "@/lib/data/public-queries";
 
@@ -24,6 +25,7 @@ export default async function UmkmDirectoryPage() {
             </span>
           </Link>
           <nav className="flex items-center gap-3 text-sm font-medium">
+            <ThemeToggle />
             <Link className="text-muted-foreground hover:text-foreground" href="/#tentang">
               Tentang
             </Link>

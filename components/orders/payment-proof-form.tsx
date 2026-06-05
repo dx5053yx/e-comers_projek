@@ -34,11 +34,17 @@ export function PaymentProofForm({ orderId }: { orderId: string }) {
       ) : null}
       <div className="grid gap-2">
         <Label htmlFor="proof_url">URL bukti pembayaran</Label>
-        <Input id="proof_url" name="proof_url" type="url" placeholder="https://..." required />
+        <Input
+          id="proof_url"
+          name="proof_url"
+          type="url"
+          placeholder="Contoh: https://domain.com/bukti-transfer.jpg"
+          required
+        />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="note">Catatan</Label>
-        <Textarea id="note" name="note" />
+        <Textarea id="note" name="note" placeholder="Contoh: Sudah transfer sesuai nominal order." />
       </div>
       <Button type="submit">
         <Upload className="h-4 w-4" aria-hidden />

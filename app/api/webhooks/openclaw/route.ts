@@ -306,7 +306,7 @@ async function recordPaymentProofFromMedia({
   const orderCode = extractOrderCode(`${message} ${media.caption ?? ""}`);
   const query = supabase
     .from("orders")
-    .select("id, order_code, grand_total")
+    .select("id, order_code, grand_total, status, payment_status")
     .eq("business_id", businessId)
     .eq("payment_status", "PENDING")
     .order("created_at", { ascending: false })
@@ -328,6 +328,16 @@ async function recordPaymentProofFromMedia({
     };
   }
 
+  const { data: currentPayment, error: currentPaymentError } = await supabase
+    .from("payments")
+    .select("id, status")
+    .eq("order_id", order.id)
+    .maybeSingle();
+
+  if (currentPaymentError) {
+    throw currentPaymentError;
+  }
+
   const proofUrl = await uploadPaymentProofImage({
     supabase,
     businessId,
@@ -341,15 +351,62 @@ async function recordPaymentProofFromMedia({
       {
         order_id: order.id,
         amount: order.grand_total,
-        status: "PENDING",
+        status: "PAID",
         proof_url: proofUrl,
-        note: `Bukti pembayaran dikirim via WhatsApp. Caption: ${message}`,
+        verified_at: new Date().toISOString(),
+        note: `Bukti pembayaran diterima otomatis via WhatsApp. Caption: ${message}`,
       },
       { onConflict: "order_id" },
     );
 
   if (paymentError) {
     throw paymentError;
+  }
+
+  await supabase
+    .from("orders")
+    .update({
+      payment_status: "PAID",
+      status: order.status === "COMPLETED" ? "COMPLETED" : "PROCESSING",
+    })
+    .eq("id", order.id);
+
+  if (currentPayment?.status !== "PAID") {
+    const { data: items, error: itemsError } = await supabase
+      .from("order_items")
+      .select("product_variant_id, quantity")
+      .eq("order_id", order.id);
+
+    if (itemsError) {
+      throw itemsError;
+    }
+
+    for (const item of items ?? []) {
+      if (!item.product_variant_id) {
+        continue;
+      }
+
+      const { data: variant } = await supabase
+        .from("product_variants")
+        .select("stock")
+        .eq("id", item.product_variant_id)
+        .single();
+
+      const nextStock = Math.max(0, Number(variant?.stock ?? 0) - Number(item.quantity));
+
+      await supabase
+        .from("product_variants")
+        .update({ stock: nextStock })
+        .eq("id", item.product_variant_id);
+
+      await supabase.from("inventory_movements").insert({
+        business_id: businessId,
+        product_variant_id: item.product_variant_id,
+        type: "OUT",
+        quantity: Number(item.quantity),
+        note: `Payment auto-verified from WhatsApp proof for ${order.order_code}`,
+      });
+    }
   }
 
   return {
@@ -359,7 +416,7 @@ async function recordPaymentProofFromMedia({
 }
 
 function buildPaymentProofReceivedReply(orderCode: string) {
-  return `Makasih kak, bukti pembayaran untuk ${orderCode} sudah aku terima. Aku teruskan ke admin buat dicek dulu ya. Nanti kalau sudah diverifikasi, status pesanannya aku update.`;
+  return `Makasih kak, bukti pembayaran untuk ${orderCode} sudah aku terima. Pembayarannya aku catat masuk dan pesanan sekarang diproses ya. Kalau pesanannya sudah diterima nanti bilang "pesanan selesai", nanti aku bantu minta rating juga.`;
 }
 
 function buildPaymentProofRetryReply(reason: PaymentProofRetryReason) {
@@ -370,6 +427,325 @@ function buildPaymentProofRetryReply(reason: PaymentProofRetryReason) {
 
 function buildPaymentProofNoOrderReply() {
   return "Bukti transfernya sudah masuk sebagai gambar, kak. Tapi aku belum menemukan order yang masih menunggu pembayaran dari nomor ini. Boleh kirim kode ordernya juga? Contohnya SP-20260604-005.";
+}
+
+function isOrderCompletionRequest(message: string) {
+  const normalized = normalize(message);
+  const hasCompletionWord = /\b(selesai|beres|sampai|diterima|kelar|rampung)\b/.test(normalized);
+  const hasOrderContext = /\b(pesanan(?:nya)?|order(?:an)?|makanan|produk|paket|barang|nya)\b/.test(normalized);
+
+  return hasCompletionWord && hasOrderContext;
+}
+
+function buildReviewRequestReply(orderCode: string) {
+  return [
+    `Siap kak, pesanan ${orderCode} aku tandai selesai. Makasih sudah order.`,
+    "Boleh bantu kasih rating makanan?",
+    "Balas dengan angka 1 sampai 5 ya:",
+    "1 = kurang puas, 2 = kurang, 3 = cukup, 4 = bagus, 5 = puas banget.",
+    'Contoh balasan: "5, rasanya enak dan porsinya pas" atau "rating 4, pengirimannya agak lama".',
+  ].join("\n");
+}
+
+function buildCompletionNeedsPaymentReply(orderCode: string) {
+  return `Pesanan ${orderCode} belum bisa aku tandai selesai karena pembayaran belum tercatat masuk. Kirim bukti transfer dulu ya kak, nanti setelah masuk baru bisa dilanjutkan sampai selesai.`;
+}
+
+function buildCompletionNoOrderReply() {
+  return "Aku belum menemukan pesanan aktif dari nomor ini, kak. Kalau mau cek pesanan tertentu, kirim kode ordernya ya.";
+}
+
+function isReviewPromptActive(history: ConversationHistory) {
+  const lastBotMessage = getLastBotMessage(history);
+
+  return lastBotMessage
+    ? /\b(boleh kasih rating|kasih rating|rating makanannya|bantu kasih rating|angka 1 sampai 5|1 kurang puas|puas banget)\b/.test(normalize(lastBotMessage))
+    : false;
+}
+
+function extractRatingValue(message: string) {
+  const starCount = message.match(/[★⭐]/g)?.length ?? 0;
+
+  if (starCount >= 1 && starCount <= 5) {
+    return starCount;
+  }
+
+  const raw = message.toLowerCase();
+  const normalized = normalize(message);
+  const wordRatings: Record<string, number> = {
+    satu: 1,
+    dua: 2,
+    tiga: 3,
+    empat: 4,
+    lima: 5,
+  };
+  const wordMatch = normalized.match(/\b(satu|dua|tiga|empat|lima)\b/);
+
+  if (wordMatch) {
+    return wordRatings[wordMatch[1]];
+  }
+
+  const patterns = [
+    /\b(?:rating(?:nya)?|rate|nilai|bintang|star)\s*(?:ku|aku|saya|nya|makanan(?:nya)?)?\s*[:=\-]?\s*([1-5])\b/i,
+    /\b([1-5])\s*(?:\/\s*5|dari\s*5|per\s*5|bintang|star|stars|rating|nilai)\b/i,
+    /\b([1-5])\s*(?:aja|ya|kak|deh|dong|sih)?\b/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    const rating = Number(match?.[1] ?? 0);
+
+    if (Number.isInteger(rating) && rating >= 1 && rating <= 5) {
+      return rating;
+    }
+  }
+
+  return null;
+}
+
+function extractReviewInput(message: string) {
+  const rating = extractRatingValue(message);
+
+  if (rating === null || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return null;
+  }
+
+  const comment = message
+    .replace(/[★⭐]/g, " ")
+    .replace(/\b(?:rating(?:nya)?|rate|nilai|bintang|star)\s*(?:ku|aku|saya|nya|makanan(?:nya)?)?\s*[:=\-]?\s*[1-5]\b/gi, " ")
+    .replace(/\b[1-5]\s*(?:\/\s*5|dari\s*5|per\s*5|bintang|star|stars|rating|nilai)?\b/gi, " ")
+    .replace(/\b(rating|ratingnya|rate|bintang|star|stars|nilai|kasih|aku|saya|satu|dua|tiga|empat|lima|aja|ya|kak|deh|dong)\b/gi, " ")
+    .replace(/[,.]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return {
+    rating,
+    comment: comment || null,
+  };
+}
+
+async function getLatestCustomerOrder({
+  supabase,
+  businessId,
+  customerId,
+}: {
+  supabase: AdminSupabaseClient;
+  businessId: string;
+  customerId?: string | null;
+}) {
+  if (!customerId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id, order_code, business_id, customer_id, status, payment_status")
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function getLatestCompletedOrderWithoutReview({
+  supabase,
+  businessId,
+  customerId,
+}: {
+  supabase: AdminSupabaseClient;
+  businessId: string;
+  customerId?: string | null;
+}) {
+  if (!customerId) {
+    return null;
+  }
+
+  const { data: orders, error } = await supabase
+    .from("orders")
+    .select("id, order_code, business_id, customer_id")
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId)
+    .eq("status", "COMPLETED")
+    .order("updated_at", { ascending: false })
+    .limit(5);
+
+  if (error) {
+    throw error;
+  }
+
+  for (const order of orders ?? []) {
+    const { data: existingReview, error: reviewError } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("order_id", order.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (reviewError) {
+      throw reviewError;
+    }
+
+    if (!existingReview) {
+      return order;
+    }
+  }
+
+  return null;
+}
+
+async function completeLatestPaidOrder({
+  supabase,
+  businessId,
+  customerId,
+}: {
+  supabase: AdminSupabaseClient;
+  businessId: string;
+  customerId?: string | null;
+}) {
+  const order = await getLatestCustomerOrder({ supabase, businessId, customerId });
+
+  if (!order) {
+    return {
+      status: "NO_ORDER" as const,
+    };
+  }
+
+  if (order.payment_status !== "PAID") {
+    return {
+      status: "UNPAID" as const,
+      orderCode: order.order_code,
+    };
+  }
+
+  if (order.status !== "COMPLETED") {
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "COMPLETED", updated_at: now })
+      .eq("id", order.id);
+
+    if (error) {
+      throw error;
+    }
+
+    await supabase.from("shipments").upsert(
+      {
+        order_id: order.id,
+        status: "DELIVERED",
+        delivered_at: now,
+        updated_at: now,
+      },
+      { onConflict: "order_id" },
+    );
+
+    await supabase.from("order_status_logs").insert({
+      order_id: order.id,
+      old_status: order.status,
+      new_status: "COMPLETED",
+      note: "Customer confirmed order completion via WhatsApp.",
+    });
+  }
+
+  const { data: existingReview, error: reviewError } = await supabase
+    .from("reviews")
+    .select("id")
+    .eq("order_id", order.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (reviewError) {
+    throw reviewError;
+  }
+
+  return {
+    status: "COMPLETED" as const,
+    orderCode: order.order_code,
+    needsReview: !existingReview,
+  };
+}
+
+async function recordReviewFromMessage({
+  supabase,
+  businessId,
+  customerId,
+  message,
+  conversationHistory,
+}: {
+  supabase: AdminSupabaseClient;
+  businessId: string;
+  customerId?: string | null;
+  message: string;
+  conversationHistory: ConversationHistory;
+}) {
+  const normalized = normalize(message);
+  const promptActive = isReviewPromptActive(conversationHistory);
+  const explicitReview = /\b(rating|bintang|ulasan|review)\b/.test(normalized);
+
+  if (!promptActive && !explicitReview) {
+    return null;
+  }
+
+  const reviewInput = extractReviewInput(message);
+
+  if (!reviewInput) {
+    return {
+      status: "INVALID_RATING" as const,
+    };
+  }
+
+  const order = await getLatestCompletedOrderWithoutReview({
+    supabase,
+    businessId,
+    customerId,
+  });
+
+  if (!order) {
+    return {
+      status: "NO_REVIEWABLE_ORDER" as const,
+    };
+  }
+
+  const { error } = await supabase.from("reviews").insert({
+    business_id: businessId,
+    order_id: order.id,
+    customer_id: customerId,
+    rating: reviewInput.rating,
+    comment: reviewInput.comment,
+    is_visible: true,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    status: "RECORDED" as const,
+    orderCode: order.order_code,
+    rating: reviewInput.rating,
+  };
+}
+
+function buildReviewReceivedReply(rating: number) {
+  return `Makasih banyak kak, rating ${rating}/5 sudah aku simpan. Feedback kakak langsung masuk ke dashboard toko.`;
+}
+
+function buildAlreadyReviewedReply(orderCode: string) {
+  return `Pesanan ${orderCode} sudah tercatat selesai, kak. Ratingnya juga sudah masuk ke dashboard. Makasih ya.`;
+}
+
+function buildInvalidRatingReply() {
+  return [
+    "Boleh kirim ratingnya pakai angka 1 sampai 5 ya kak.",
+    "1 = kurang puas, 2 = kurang, 3 = cukup, 4 = bagus, 5 = puas banget.",
+    'Contoh: "5, rasanya enak" atau "rating 4, pengirimannya agak lama".',
+  ].join("\n");
 }
 
 function productNamesStillPresent(
@@ -777,6 +1153,7 @@ export async function POST(request: Request) {
       message: payload.message,
       raw: payload.raw,
     });
+    let specialHandled = Boolean(paymentProof);
 
     if (paymentProof?.status === "RECORDED") {
       reply = buildPaymentProofReceivedReply(paymentProof.orderCode);
@@ -784,6 +1161,7 @@ export async function POST(request: Request) {
       intent = {
         ...intent,
         intent: "ASK_PAYMENT_METHOD",
+        items: [],
         confidence: Math.max(intent.confidence, 0.9),
       };
     }
@@ -794,6 +1172,7 @@ export async function POST(request: Request) {
       intent = {
         ...intent,
         intent: "ASK_PAYMENT_METHOD",
+        items: [],
         confidence: Math.max(intent.confidence, 0.8),
       };
     }
@@ -804,18 +1183,94 @@ export async function POST(request: Request) {
       intent = {
         ...intent,
         intent: "CHECK_ORDER_STATUS",
+        items: [],
         confidence: Math.max(intent.confidence, 0.75),
       };
     }
 
-    if (!paymentProof && intent.intent === "UNKNOWN" && isAffirmation(payload.message)) {
+    if (!specialHandled && isOrderCompletionRequest(payload.message)) {
+      const completion = await completeLatestPaidOrder({
+        supabase,
+        businessId: business.id,
+        customerId: customer?.id,
+      });
+      specialHandled = true;
+      shouldNaturalizeReply = false;
+
+      if (completion.status === "COMPLETED") {
+        reply = completion.needsReview
+          ? buildReviewRequestReply(completion.orderCode)
+          : buildAlreadyReviewedReply(completion.orderCode);
+        intent = {
+          ...intent,
+          intent: "CHECK_ORDER_STATUS",
+          items: [],
+          confidence: Math.max(intent.confidence, 0.9),
+        };
+      }
+
+      if (completion.status === "UNPAID") {
+        reply = buildCompletionNeedsPaymentReply(completion.orderCode);
+        intent = {
+          ...intent,
+          intent: "ASK_PAYMENT_METHOD",
+          items: [],
+          confidence: Math.max(intent.confidence, 0.85),
+        };
+      }
+
+      if (completion.status === "NO_ORDER") {
+        reply = buildCompletionNoOrderReply();
+        intent = {
+          ...intent,
+          intent: "CHECK_ORDER_STATUS",
+          items: [],
+          confidence: Math.max(intent.confidence, 0.75),
+        };
+      }
+    }
+
+    if (!specialHandled) {
+      const review = await recordReviewFromMessage({
+        supabase,
+        businessId: business.id,
+        customerId: customer?.id,
+        message: payload.message,
+        conversationHistory,
+      });
+
+      if (review) {
+        specialHandled = true;
+        shouldNaturalizeReply = false;
+        intent = {
+          ...intent,
+          intent: "UNKNOWN",
+          items: [],
+          confidence: Math.max(intent.confidence, 0.8),
+        };
+
+        if (review.status === "RECORDED") {
+          reply = buildReviewReceivedReply(review.rating);
+        }
+
+        if (review.status === "INVALID_RATING") {
+          reply = buildInvalidRatingReply();
+        }
+
+        if (review.status === "NO_REVIEWABLE_ORDER") {
+          reply = "Aku belum menemukan pesanan selesai yang belum diberi rating dari nomor ini, kak.";
+        }
+      }
+    }
+
+    if (!specialHandled && intent.intent === "UNKNOWN" && isAffirmation(payload.message)) {
       const pendingItems = getPendingOrderFromLastBot(conversationHistory, products);
       forcedMatchedItems = pendingItems.length
         ? pendingItems
         : inferMatchedItemsFromMessage(payload.message, products, conversationHistory);
     }
 
-    if (!paymentProof && intent.intent === "UNKNOWN" && !forcedMatchedItems.length) {
+    if (!specialHandled && intent.intent === "UNKNOWN" && !forcedMatchedItems.length) {
       forcedMatchedItems = inferMatchedItemsFromMessage(
         payload.message,
         products,
@@ -823,7 +1278,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!paymentProof && forcedMatchedItems.length) {
+    if (!specialHandled && forcedMatchedItems.length) {
       intent = {
         ...intent,
         intent: "CREATE_ORDER",
@@ -837,7 +1292,7 @@ export async function POST(request: Request) {
       };
     }
 
-    if (!paymentProof && intent.intent === "ASK_STOCK") {
+    if (!specialHandled && intent.intent === "ASK_STOCK") {
       const productQuery = extractProductQuery(payload.message);
       reply = buildAvailabilityReply({
         product: productQuery ? matchProduct(products, productQuery) : null,
@@ -846,11 +1301,11 @@ export async function POST(request: Request) {
       });
     }
 
-    if (!paymentProof && (intent.intent === "ASK_PRODUCT" || intent.intent === "ASK_PRICE")) {
+    if (!specialHandled && (intent.intent === "ASK_PRODUCT" || intent.intent === "ASK_PRICE")) {
       reply = buildProductListReply(business.name, products);
     }
 
-    if (!paymentProof && intent.intent === "ASK_PAYMENT_METHOD") {
+    if (!specialHandled && intent.intent === "ASK_PAYMENT_METHOD") {
       reply = buildPaymentMethodReply(
         business.name,
         business.payment_instructions,
@@ -858,15 +1313,15 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!paymentProof && intent.intent === "ASK_DELIVERY") {
+    if (!specialHandled && intent.intent === "ASK_DELIVERY") {
       reply = buildDeliveryReply(business.name, business.address);
     }
 
-    if (!paymentProof && intent.intent === "TALK_TO_ADMIN") {
+    if (!specialHandled && intent.intent === "TALK_TO_ADMIN") {
       reply = buildTalkToAdminReply();
     }
 
-    if (!paymentProof && intent.intent === "CHECK_ORDER_STATUS") {
+    if (!specialHandled && intent.intent === "CHECK_ORDER_STATUS") {
       const orderCode = intent.order_code;
 
       if (!orderCode) {
@@ -884,7 +1339,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!paymentProof && intent.intent === "CREATE_ORDER") {
+    if (!specialHandled && intent.intent === "CREATE_ORDER") {
       let matchedItems = forcedMatchedItems.length
         ? forcedMatchedItems
         : buildMatchedItemsFromIntent(intent.items, products);

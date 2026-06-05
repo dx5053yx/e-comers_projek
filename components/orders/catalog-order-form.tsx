@@ -131,7 +131,10 @@ export function CatalogOrderForm({
       ) : null}
       <div className="grid gap-2">
         <Label htmlFor="product_id">Produk</Label>
-        <Select id="product_id" name="product_id" required>
+        <Select id="product_id" name="product_id" defaultValue="" required>
+          <option disabled value="">
+            Pilih produk, contoh: Bakso mantap-mantep
+          </option>
           {products.map((product) => (
             <option key={product.id} value={product.id}>
               {product.name}
@@ -141,23 +144,32 @@ export function CatalogOrderForm({
       </div>
       <div className="grid gap-2">
         <Label htmlFor="quantity">Jumlah</Label>
-        <Input id="quantity" name="quantity" type="number" min={1} step={1} defaultValue={1} required />
+        <Input
+          id="quantity"
+          name="quantity"
+          type="number"
+          min={1}
+          step={1}
+          defaultValue={1}
+          placeholder="Contoh: 2"
+          required
+        />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="name">Nama</Label>
-        <Input id="name" name="name" required />
+        <Input id="name" name="name" placeholder="Contoh: Aqil Fachri" required />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="whatsapp_number">WhatsApp</Label>
-        <Input id="whatsapp_number" name="whatsapp_number" placeholder="+628..." required />
+        <Input id="whatsapp_number" name="whatsapp_number" placeholder="Contoh: +6281234567890" required />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="address">Alamat</Label>
-        <Textarea id="address" name="address" required />
+        <Textarea id="address" name="address" placeholder="Contoh: Jl. Letkol Iskandar No. 10, Purbalingga" required />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="notes">Catatan</Label>
-        <Textarea id="notes" maxLength={500} name="notes" />
+        <Textarea id="notes" maxLength={500} name="notes" placeholder="Contoh: Pedas sedang, ambil jam 5 sore." />
       </div>
       <Button type="submit">
         <ShoppingBag className="h-4 w-4" aria-hidden />

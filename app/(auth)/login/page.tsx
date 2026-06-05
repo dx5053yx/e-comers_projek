@@ -36,11 +36,11 @@ export default async function LoginPage({
           <form action={loginAction} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="owner@sipandu.id" required />
+              <Input id="email" name="email" type="email" placeholder="Contoh: owner@sipandu.id" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
+              <Input id="password" name="password" type="password" placeholder="Masukkan password akun" required />
             </div>
             <Button className="w-full" type="submit">
               Login

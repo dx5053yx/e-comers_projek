@@ -66,12 +66,12 @@ export function ProductForm({
       slug: product?.slug ?? "",
       sku: product?.sku ?? "",
       description: product?.description ?? "",
-      price: product?.price ?? 0,
+      price: product?.price ?? "",
       image_url: product?.image_url ?? "",
       is_active: product?.is_active ?? true,
       variant_name: defaultVariant?.name ?? "Default",
       variant_sku: defaultVariant?.sku ?? "",
-      stock: defaultVariant?.stock ?? 0,
+      stock: defaultVariant?.stock ?? "",
       low_stock_threshold: defaultVariant?.low_stock_threshold ?? 5,
     }),
     [defaultVariant, product],
@@ -187,17 +187,32 @@ export function ProductForm({
         <form className="grid gap-4 md:grid-cols-2" onSubmit={form.handleSubmit(onSubmit)}>
           <div className="space-y-2">
             <Label htmlFor="name">Nama produk</Label>
-            <Input id="name" aria-invalid={Boolean(form.formState.errors.name)} {...form.register("name")} />
+            <Input
+              id="name"
+              placeholder="Contoh: Bakso mantap-mantep"
+              aria-invalid={Boolean(form.formState.errors.name)}
+              {...form.register("name")}
+            />
             <FieldError message={form.formState.errors.name?.message} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="slug">Slug</Label>
-            <Input id="slug" aria-invalid={Boolean(form.formState.errors.slug)} {...form.register("slug")} />
+            <Input
+              id="slug"
+              placeholder="Contoh: bakso-mantap-mantep"
+              aria-invalid={Boolean(form.formState.errors.slug)}
+              {...form.register("slug")}
+            />
             <FieldError message={form.formState.errors.slug?.message} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="sku">SKU</Label>
-            <Input id="sku" aria-invalid={Boolean(form.formState.errors.sku)} {...form.register("sku")} />
+            <Input
+              id="sku"
+              placeholder="Contoh: BKS-001"
+              aria-invalid={Boolean(form.formState.errors.sku)}
+              {...form.register("sku")}
+            />
             <FieldError message={form.formState.errors.sku?.message} />
           </div>
           <div className="space-y-2">
@@ -205,7 +220,7 @@ export function ProductForm({
             <Input
               id="price"
               inputMode="numeric"
-              placeholder="Contoh: 13.000"
+              placeholder="Contoh: 15.000"
               aria-invalid={Boolean(form.formState.errors.price)}
               {...form.register("price")}
             />
@@ -228,7 +243,12 @@ export function ProductForm({
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">Deskripsi</Label>
-            <Textarea id="description" aria-invalid={Boolean(form.formState.errors.description)} {...form.register("description")} />
+            <Textarea
+              id="description"
+              placeholder="Contoh: Bakso pedas isi 10, cocok untuk makan siang."
+              aria-invalid={Boolean(form.formState.errors.description)}
+              {...form.register("description")}
+            />
             <FieldError message={form.formState.errors.description?.message} />
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -268,21 +288,40 @@ export function ProductForm({
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="image_url">URL foto produk</Label>
-            <Input id="image_url" type="url" aria-invalid={Boolean(form.formState.errors.image_url)} {...form.register("image_url")} />
+            <Input
+              id="image_url"
+              type="url"
+              placeholder="Contoh: https://domain.com/foto-produk.jpg"
+              aria-invalid={Boolean(form.formState.errors.image_url)}
+              {...form.register("image_url")}
+            />
             <FieldError message={form.formState.errors.image_url?.message} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="variant_name">Nama varian</Label>
-            <Input id="variant_name" aria-invalid={Boolean(form.formState.errors.variant_name)} {...form.register("variant_name")} />
+            <Input
+              id="variant_name"
+              placeholder="Contoh: Default / Pedas / Original"
+              aria-invalid={Boolean(form.formState.errors.variant_name)}
+              {...form.register("variant_name")}
+            />
             <FieldError message={form.formState.errors.variant_name?.message} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="variant_sku">SKU varian</Label>
-            <Input id="variant_sku" {...form.register("variant_sku")} />
+            <Input id="variant_sku" placeholder="Contoh: BKS-PDS-001" {...form.register("variant_sku")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="stock">Stok</Label>
-            <Input id="stock" min={0} step={1} type="number" aria-invalid={Boolean(form.formState.errors.stock)} {...form.register("stock")} />
+            <Input
+              id="stock"
+              min={0}
+              step={1}
+              type="number"
+              placeholder="Contoh: 25"
+              aria-invalid={Boolean(form.formState.errors.stock)}
+              {...form.register("stock")}
+            />
             <FieldError message={form.formState.errors.stock?.message} />
           </div>
           <div className="space-y-2">
@@ -290,6 +329,7 @@ export function ProductForm({
             <Input
               id="low_stock_threshold"
               min={0}
+              placeholder="Contoh: 5"
               step={1}
               type="number"
               aria-invalid={Boolean(form.formState.errors.low_stock_threshold)}
