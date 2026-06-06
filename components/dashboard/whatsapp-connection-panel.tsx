@@ -4,7 +4,7 @@
 
 import { Power, QrCode, RefreshCw, Save, Unplug } from "lucide-react";
 import QRCode from "qrcode";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/form";
 import type { Business } from "@/lib/types";
@@ -34,9 +34,11 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [prompt, setPrompt] = useState(business.whatsapp_ai_prompt ?? "");
   const [message, setMessage] = useState<string | null>(null);
+  const autoStartRef = useRef(false);
 
   const session = status?.session;
   const isConnected = session?.status === "connected";
+  const isPreparingQr = session?.status === "connecting" || session?.status === "qr";
   const statusLabel = useMemo(() => {
     if (status?.botError) {
       return "Bot service belum aktif";
@@ -67,9 +69,9 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
     }
   }
 
-  async function connect() {
+  const connect = useCallback(async ({ automatic = false }: { automatic?: boolean } = {}) => {
     setIsConnecting(true);
-    setMessage("Menyiapkan QR WhatsApp...");
+    setMessage(automatic ? "Menyiapkan QR WhatsApp otomatis..." : "Menyiapkan QR WhatsApp...");
 
     try {
       const response = await fetch("/api/whatsapp/session", { method: "POST" });
@@ -81,11 +83,11 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
       }
 
       setStatus(payload);
-      setMessage("QR siap. Scan dari WhatsApp bisnis.");
+      setMessage(payload?.session?.qr ? "QR siap. Scan dari WhatsApp bisnis." : "QR sedang dibuat, tunggu sebentar ya.");
     } finally {
       setIsConnecting(false);
     }
-  }
+  }, []);
 
   async function disconnect() {
     setIsDisconnecting(true);
@@ -142,6 +144,17 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
   }, []);
 
   useEffect(() => {
+    if (!status || status.botError || status.session || autoStartRef.current) {
+      return;
+    }
+
+    autoStartRef.current = true;
+    connect({ automatic: true }).catch((error) => {
+      setMessage(error instanceof Error ? error.message : "Gagal menyiapkan QR WhatsApp.");
+    });
+  }, [connect, status]);
+
+  useEffect(() => {
     if (!session?.qr) {
       setQrDataUrl(null);
       return;
@@ -185,8 +198,18 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
               />
             ) : (
               <div className="grid justify-items-center gap-3 text-center text-sm text-muted-foreground">
-                <QrCode className="h-10 w-10" aria-hidden />
-                {isConnected ? "WhatsApp sudah terhubung." : "QR akan muncul setelah klik Hubungkan."}
+                {isPreparingQr ? (
+                  <RefreshCw className="h-10 w-10 animate-spin text-primary" aria-hidden />
+                ) : (
+                  <QrCode className="h-10 w-10" aria-hidden />
+                )}
+                {status?.botError
+                  ? `Bot service belum bisa diakses: ${status.botError}`
+                  : isConnected
+                    ? "WhatsApp sudah terhubung."
+                    : isPreparingQr
+                      ? "QR sedang disiapkan, tunggu sebentar."
+                      : "QR akan disiapkan otomatis. Klik Hubungkan kalau belum muncul."}
               </div>
             )}
           </div>
@@ -203,7 +226,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button disabled={isConnecting || isConnected} onClick={connect} type="button">
+              <Button disabled={isConnecting || isConnected} onClick={() => connect()} type="button">
                 {isConnecting ? (
                   <RefreshCw className="h-4 w-4 animate-spin" aria-hidden />
                 ) : (
