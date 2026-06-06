@@ -1,8 +1,13 @@
-import type { Order, Product } from "@/lib/types";
+import type { Order, Product, Voucher } from "@/lib/types";
 import { orderStatusLabels } from "@/lib/orders/status";
+import { activePromoSummary } from "@/lib/promos";
 import { formatCurrency } from "@/lib/utils";
 
-export function buildProductListReply(businessName: string, products: Product[]) {
+export function buildProductListReply(
+  businessName: string,
+  products: Product[],
+  vouchers: Voucher[] = [],
+) {
   if (!products.length) {
     return `Belum ada produk yang aktif di ${businessName}, kak. Nanti kalau sudah ada, aku kabarin ya.`;
   }
@@ -13,18 +18,28 @@ export function buildProductListReply(businessName: string, products: Product[])
     .map((product, index) => `${index + 1}. ${product.name} - ${formatCurrency(product.price)}`)
     .join("\n");
 
-  return `Ready kak, yang ada sekarang ini:\n${list}\n\nMau aku bantu buatkan order? Tinggal pilih produknya sama jumlahnya ya.`;
+  const promos = activePromoSummary(vouchers);
+  const promoText = promos.length
+    ? `\n\nPromo aktif:\n${promos.map((promo) => `- ${promo}`).join("\n")}`
+    : "";
+
+  return `Ready kak, yang ada sekarang ini:\n${list}${promoText}\n\nMau aku bantu buatkan order? Tinggal pilih produknya sama jumlahnya ya.`;
 }
 
 export function buildAvailabilityReply({
   product,
   query,
   products,
+  vouchers = [],
 }: {
   product?: Product | null;
   query?: string | null;
   products: Product[];
+  vouchers?: Voucher[];
 }) {
+  const promos = activePromoSummary(vouchers, 2);
+  const promoText = promos.length ? ` Lagi ada promo: ${promos.join("; ")}.` : "";
+
   if (product) {
     const totalStock = product.variants?.reduce((sum, variant) => sum + variant.stock, 0);
     const stockText =
@@ -34,7 +49,7 @@ export function buildAvailabilityReply({
           : "stoknya lagi kosong"
         : "bisa dicek dulu";
 
-    return `${product.name} ready di katalog, kak. Harganya ${formatCurrency(product.price)}, ${stockText}. Mau aku siapkan berapa?`;
+    return `${product.name} ready di katalog, kak. Harganya ${formatCurrency(product.price)}, ${stockText}.${promoText} Mau aku siapkan berapa?`;
   }
 
   const availableProducts = products
@@ -44,7 +59,7 @@ export function buildAvailabilityReply({
     .join(", ");
   const searched = query?.trim() ? ` "${query.trim()}"` : "";
 
-  return `Kalau${searched}, belum ada di katalog kami, kak. Yang ready sekarang: ${availableProducts || "belum ada produk aktif"}. Mau aku kirim menu lengkapnya atau mau pilih salah satu yang ready dulu?`;
+  return `Kalau${searched}, belum ada di katalog kami, kak. Yang ready sekarang: ${availableProducts || "belum ada produk aktif"}.${promoText} Mau aku kirim menu lengkapnya atau mau pilih salah satu yang ready dulu?`;
 }
 
 export function buildPaymentReply(
@@ -55,11 +70,24 @@ export function buildPaymentReply(
   const items = (order.items ?? [])
     .map((item) => `- ${item.product_name} x${item.quantity} = ${formatCurrency(item.total)}`)
     .join("\n");
+  const discountText = Number(order.discount_total ?? 0) > 0
+    ? `Subtotal: ${formatCurrency(order.subtotal)}\nDiskon promo: -${formatCurrency(order.discount_total)}\n`
+    : "";
   const qrisText = qrisImageUrl
     ? `\n\nQRIS pembayaran:\n${qrisImageUrl}\n\nSetelah transfer/scan QRIS, kirim bukti pembayaran di chat ini ya kak.`
     : "";
 
-  return `Siap kak, pesanan berhasil dibuat.\nKode order: ${order.order_code}\n\nDetail:\n${items}\nTotal: ${formatCurrency(order.grand_total)}\n\n${paymentInstructions ?? "Silakan transfer ke rekening toko, lalu kirim bukti pembayaran di sini."}${qrisText}`;
+  return `Siap kak, pesanan berhasil dibuat.\nKode order: ${order.order_code}\n\nDetail:\n${items}\n${discountText}Total: ${formatCurrency(order.grand_total)}\n\n${paymentInstructions ?? "Silakan transfer ke rekening toko, lalu kirim bukti pembayaran di sini."}${qrisText}`;
+}
+
+export function buildPromoListReply(vouchers: Voucher[]) {
+  const promos = activePromoSummary(vouchers, 6);
+
+  if (!promos.length) {
+    return "Untuk sekarang belum ada promo aktif, kak. Tapi produk yang ready tetap bisa aku bantu buatkan order.";
+  }
+
+  return `Lagi ada promo ini, kak:\n${promos.map((promo) => `- ${promo}`).join("\n")}\n\nKalau ordernya memenuhi syarat, promo otomatis aku pakai. Mau pesan yang mana?`;
 }
 
 export function buildOrderStatusReply(order: Order) {

@@ -145,6 +145,84 @@ export const reviewSchema = z.object({
   comment: z.string().max(1000).optional().nullable(),
 });
 
+const optionalDateTime = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .or(z.literal(""))
+  .transform((value) => (value === "" ? null : value));
+
+export const voucherSchema = z
+  .object({
+    business_id: z.string().uuid(),
+    code: z
+      .string()
+      .trim()
+      .min(2, "Kode promo minimal 2 karakter.")
+      .max(32, "Kode promo maksimal 32 karakter.")
+      .regex(/^[a-zA-Z0-9-]+$/, "Kode hanya boleh huruf, angka, dan tanda hubung.")
+      .transform((value) => value.toUpperCase()),
+    title: nullableOptionalText,
+    description: nullableOptionalText,
+    promo_kind: z.enum(["DISCOUNT", "BUY_X_GET_Y"]).default("DISCOUNT"),
+    type: z.enum(["FIXED", "PERCENTAGE"]).default("FIXED"),
+    value: z.preprocess(parseRupiahInput, z.coerce.number().min(0).default(0)),
+    min_purchase: z.preprocess(parseRupiahInput, z.coerce.number().min(0).default(0)),
+    min_quantity: z.coerce.number().int().min(0).default(0),
+    buy_quantity: z.coerce.number().int().min(0).default(0),
+    free_quantity: z.coerce.number().int().min(0).default(0),
+    max_uses: z.coerce.number().int().positive().optional().nullable().or(z.literal("")),
+    used_count: z.coerce.number().int().min(0).default(0),
+    starts_at: optionalDateTime,
+    ends_at: optionalDateTime,
+    is_active: z.coerce.boolean().default(true),
+  })
+  .transform((value) => ({
+    ...value,
+    max_uses: value.max_uses === "" ? null : value.max_uses,
+    type: value.promo_kind === "BUY_X_GET_Y" ? "FIXED" : value.type,
+    value: value.promo_kind === "BUY_X_GET_Y" ? 0 : value.value,
+    min_quantity: value.promo_kind === "BUY_X_GET_Y" ? 0 : value.min_quantity,
+  }))
+  .superRefine((value, context) => {
+    if (value.promo_kind === "DISCOUNT") {
+      if (value.value <= 0) {
+        context.addIssue({
+          code: "custom",
+          message: "Nilai diskon harus lebih dari 0.",
+          path: ["value"],
+        });
+      }
+
+      if (value.type === "PERCENTAGE" && value.value > 100) {
+        context.addIssue({
+          code: "custom",
+          message: "Diskon persen maksimal 100%.",
+          path: ["value"],
+        });
+      }
+    }
+
+    if (value.promo_kind === "BUY_X_GET_Y") {
+      if (value.buy_quantity < 1) {
+        context.addIssue({
+          code: "custom",
+          message: "Jumlah beli minimal 1.",
+          path: ["buy_quantity"],
+        });
+      }
+
+      if (value.free_quantity < 1) {
+        context.addIssue({
+          code: "custom",
+          message: "Jumlah gratis minimal 1.",
+          path: ["free_quantity"],
+        });
+      }
+    }
+  });
+
 export const openClawWebhookSchema = z.object({
   businessSlug: z.string().min(1),
   from: z.string().min(3),

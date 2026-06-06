@@ -2,7 +2,8 @@ import {
   INTENT_SYSTEM_PROMPT,
   WHATSAPP_REPLY_SYSTEM_PROMPT,
 } from "@/lib/ai/prompts";
-import type { Business, Product } from "@/lib/types";
+import type { Business, Product, Voucher } from "@/lib/types";
+import { activePromoSummary } from "@/lib/promos";
 
 type GeminiResponse = {
   candidates?: Array<{
@@ -89,6 +90,7 @@ export async function generateWhatsAppReply({
   intent,
   business,
   products,
+  vouchers = [],
   draftReply,
   conversationHistory = [],
   replyMode = "safe_action",
@@ -106,6 +108,7 @@ export async function generateWhatsAppReply({
     | "whatsapp_ai_prompt"
   >;
   products: Product[];
+  vouchers?: Voucher[];
   draftReply: string;
   conversationHistory?: Array<{
     sender: "CUSTOMER" | "BOT" | "ADMIN" | "SYSTEM";
@@ -130,6 +133,7 @@ export async function generateWhatsAppReply({
       custom_ai_prompt: business.whatsapp_ai_prompt ?? null,
     },
     products: buildProductContext(products),
+    active_promos: activePromoSummary(vouchers, 6),
     intent,
     reply_mode: replyMode,
     customer_message: customerMessage,

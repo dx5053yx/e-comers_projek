@@ -47,6 +47,10 @@ export type AiIntent =
   | "TALK_TO_ADMIN"
   | "UNKNOWN";
 
+export type VoucherType = "FIXED" | "PERCENTAGE";
+
+export type PromoKind = "DISCOUNT" | "BUY_X_GET_Y";
+
 export type Business = {
   id: string;
   owner_id?: string | null;
@@ -185,4 +189,25 @@ export type Review = {
   created_at: string;
   customer?: Customer | null;
   order?: Order | null;
+};
+
+export type Voucher = {
+  id: string;
+  business_id: string;
+  code: string;
+  title?: string | null;
+  description?: string | null;
+  promo_kind: PromoKind;
+  type: VoucherType;
+  value: number;
+  min_purchase: number;
+  min_quantity: number;
+  buy_quantity: number;
+  free_quantity: number;
+  max_uses?: number | null;
+  used_count: number;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  is_active: boolean;
+  created_at: string;
 };

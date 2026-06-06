@@ -5,9 +5,11 @@ import {
   demoOrders,
   demoProducts,
   demoReviews,
+  demoVouchers,
   salesSeries,
 } from "@/lib/data/demo";
 import { createSupabaseServerClient, isSupabaseServerConfigured } from "@/lib/supabase/server";
+import { normalizeVoucherRecord } from "@/lib/promos";
 import type {
   Business,
   Customer,
@@ -246,6 +248,32 @@ export async function getReviews(businessId?: string) {
   }
 
   return (data ?? []) as Review[];
+}
+
+export async function getVouchers(businessId?: string) {
+  if (isDemoMode()) {
+    return demoVouchers;
+  }
+
+  const business = businessId ? null : await getCurrentBusiness();
+  const id = businessId ?? business?.id;
+
+  if (!id) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vouchers")
+    .select("*")
+    .eq("business_id", id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((voucher) => normalizeVoucherRecord(voucher));
 }
 
 export async function getDashboardSummary() {

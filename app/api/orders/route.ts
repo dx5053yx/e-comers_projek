@@ -2,6 +2,7 @@ import { handleRouteError, jsonError, jsonOk, parseJson } from "@/lib/api";
 import { getOrders, isDemoMode } from "@/lib/data/queries";
 import { calculateOrderTotal } from "@/lib/orders/calculate-total";
 import { generateAvailableOrderCode } from "@/lib/orders/generate-code";
+import { evaluateBestPromo, normalizeVoucherRecord } from "@/lib/promos";
 import { createSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { isSupabaseServerConfigured } from "@/lib/supabase/server";
 import { orderSchema } from "@/lib/validations/schemas";
@@ -72,9 +73,23 @@ export async function POST(request: Request) {
       customerId = customer.id;
     }
 
+    const { data: vouchers, error: voucherError } = await supabase
+      .from("vouchers")
+      .select("*")
+      .eq("business_id", input.business_id)
+      .eq("is_active", true);
+
+    if (voucherError) {
+      throw voucherError;
+    }
+
+    const promo = evaluateBestPromo(
+      (vouchers ?? []).map((voucher) => normalizeVoucherRecord(voucher)),
+      input.items,
+    );
     const totals = calculateOrderTotal({
       items: input.items,
-      discountTotal: input.discount_total,
+      discountTotal: promo.discountTotal,
       shippingCost: input.shipping_cost,
     });
     const orderCode = await generateAvailableOrderCode(supabase);
@@ -92,7 +107,9 @@ export async function POST(request: Request) {
         shipping_cost: totals.shippingCost,
         grand_total: totals.grandTotal,
         payment_status: "PENDING",
-        notes: input.notes,
+        notes: [input.notes, promo.label ? `Promo otomatis: ${promo.label}` : null]
+          .filter(Boolean)
+          .join("\n") || null,
       })
       .select("*")
       .single();
@@ -124,7 +141,14 @@ export async function POST(request: Request) {
       status: "PENDING",
     });
 
-    return jsonOk({ order }, { status: 201 });
+    if (promo.voucher && promo.discountTotal > 0) {
+      await supabase
+        .from("vouchers")
+        .update({ used_count: Number(promo.voucher.used_count ?? 0) + 1 })
+        .eq("id", promo.voucher.id);
+    }
+
+    return jsonOk({ order: { ...order, promo } }, { status: 201 });
   } catch (error) {
     return handleRouteError(error);
   }

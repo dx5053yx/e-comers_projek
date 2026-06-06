@@ -1,4 +1,4 @@
-import type { Business, Customer, Order, Product, Review } from "@/lib/types";
+import type { Business, Customer, Order, Product, Review, Voucher } from "@/lib/types";
 
 const now = "2026-06-04T09:00:00.000Z";
 
@@ -268,6 +268,49 @@ export const demoReviews: Review[] = [
     created_at: now,
     customer: demoCustomers[0],
     order: demoOrders[0],
+  },
+];
+
+export const demoVouchers: Voucher[] = [
+  {
+    id: "00000000-0000-4000-8000-000000001001",
+    business_id: demoBusiness.id,
+    code: "HEMAT10",
+    title: "Diskon 10%",
+    description: "Diskon otomatis untuk pembelian minimal 2 item.",
+    promo_kind: "DISCOUNT",
+    type: "PERCENTAGE",
+    value: 10,
+    min_purchase: 0,
+    min_quantity: 2,
+    buy_quantity: 0,
+    free_quantity: 0,
+    max_uses: null,
+    used_count: 0,
+    starts_at: null,
+    ends_at: null,
+    is_active: true,
+    created_at: now,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000001002",
+    business_id: demoBusiness.id,
+    code: "BONUS31",
+    title: "Beli 3 Gratis 1",
+    description: "Promo otomatis untuk pembelian 4 item, 1 item termurah gratis.",
+    promo_kind: "BUY_X_GET_Y",
+    type: "FIXED",
+    value: 0,
+    min_purchase: 0,
+    min_quantity: 0,
+    buy_quantity: 3,
+    free_quantity: 1,
+    max_uses: null,
+    used_count: 0,
+    starts_at: null,
+    ends_at: null,
+    is_active: true,
+    created_at: now,
   },
 ];
 

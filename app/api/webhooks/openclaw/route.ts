@@ -1,7 +1,7 @@
 import { detectIntent } from "@/lib/ai/intent";
 import { generateWhatsAppReply } from "@/lib/ai/gemini";
 import { handleRouteError, jsonError, jsonOk, parseJson } from "@/lib/api";
-import { demoBusiness, demoOrders, demoProducts } from "@/lib/data/demo";
+import { demoBusiness, demoOrders, demoProducts, demoVouchers } from "@/lib/data/demo";
 import { calculateOrderTotal } from "@/lib/orders/calculate-total";
 import { generateAvailableOrderCode } from "@/lib/orders/generate-code";
 import { createSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
@@ -19,9 +19,11 @@ import {
   buildOrderStatusReply,
   buildPaymentReply,
   buildPaymentMethodReply,
+  buildPromoListReply,
   buildProductListReply,
   buildTalkToAdminReply,
 } from "@/lib/whatsapp/reply-builder";
+import { evaluateBestPromo, normalizeVoucherRecord } from "@/lib/promos";
 
 type ConversationHistory = NonNullable<
   Parameters<typeof generateWhatsAppReply>[0]["conversationHistory"]
@@ -104,6 +106,25 @@ async function getProductsForBusiness(
       low_stock_threshold: Number(variant.low_stock_threshold ?? 0),
     })),
   })) as Product[];
+}
+
+async function getVouchersForBusiness(businessId: string) {
+  if (!isSupabaseAdminConfigured()) {
+    return [];
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("vouchers")
+    .select("*")
+    .eq("business_id", businessId)
+    .eq("is_active", true);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((voucher) => normalizeVoucherRecord(voucher));
 }
 
 async function getConversationHistory(
@@ -821,6 +842,10 @@ function looksLikeOrderRequest(message: string) {
   return /\b(mau|pesan|order|beli|ambil|bungkus|jadi|lanjut)\b/.test(normalize(message));
 }
 
+function isPromoQuestion(message: string) {
+  return /\b(promo|diskon|voucher|vocer|kupon|bonus|gratis|potongan|hemat)\b/.test(normalize(message));
+}
+
 function toMatchedOrderItem(product: Product, quantity: number): MatchedOrderItem {
   const variant = product.variants?.find((candidate) => candidate.is_active) ?? null;
 
@@ -947,6 +972,7 @@ async function buildAiNaturalReply({
   intent,
   business,
   products,
+  vouchers = [],
   draftReply,
   conversationHistory = [],
 }: {
@@ -954,6 +980,7 @@ async function buildAiNaturalReply({
   intent: string;
   business: Parameters<typeof generateWhatsAppReply>[0]["business"];
   products: Product[];
+  vouchers?: Parameters<typeof generateWhatsAppReply>[0]["vouchers"];
   draftReply: string;
   conversationHistory?: Parameters<typeof generateWhatsAppReply>[0]["conversationHistory"];
 }) {
@@ -971,6 +998,7 @@ async function buildAiNaturalReply({
       intent,
       business,
       products,
+      vouchers,
       draftReply: aiDraftReply,
       conversationHistory,
       replyMode: hardFacts ? "safe_action" : "human_chat",
@@ -1023,7 +1051,7 @@ export async function POST(request: Request) {
       const order = demoOrders.find((item) => item.order_code === intent.order_code);
       const draftReply =
         intent.intent === "ASK_PRODUCT"
-          ? buildProductListReply(demoBusiness.name, demoProducts)
+          ? buildProductListReply(demoBusiness.name, demoProducts, demoVouchers)
           : intent.intent === "CHECK_ORDER_STATUS" && order
             ? buildOrderStatusReply(order)
             : buildFallbackReply(demoBusiness.name, payload.message);
@@ -1032,6 +1060,7 @@ export async function POST(request: Request) {
         intent: intent.intent,
         business: demoBusiness,
         products: demoProducts,
+        vouchers: demoVouchers,
         draftReply,
         conversationHistory: [],
       });
@@ -1141,6 +1170,7 @@ export async function POST(request: Request) {
     }
 
     const products = await getProductsForBusiness(business.id, demoProducts);
+    const vouchers = await getVouchersForBusiness(business.id);
     const conversationHistory = await getConversationHistory(supabase, conversation?.id);
     let reply = buildFallbackReply(business.name, payload.message);
     let createdOrder: Order | null = null;
@@ -1292,17 +1322,29 @@ export async function POST(request: Request) {
       };
     }
 
+    if (!specialHandled && intent.intent !== "CREATE_ORDER" && isPromoQuestion(payload.message)) {
+      reply = buildPromoListReply(vouchers);
+      specialHandled = true;
+      intent = {
+        ...intent,
+        intent: "ASK_PRODUCT",
+        items: [],
+        confidence: Math.max(intent.confidence, 0.85),
+      };
+    }
+
     if (!specialHandled && intent.intent === "ASK_STOCK") {
       const productQuery = extractProductQuery(payload.message);
       reply = buildAvailabilityReply({
         product: productQuery ? matchProduct(products, productQuery) : null,
         query: productQuery,
         products,
+        vouchers,
       });
     }
 
     if (!specialHandled && (intent.intent === "ASK_PRODUCT" || intent.intent === "ASK_PRICE")) {
-      reply = buildProductListReply(business.name, products);
+      reply = buildProductListReply(business.name, products, vouchers);
     }
 
     if (!specialHandled && intent.intent === "ASK_PAYMENT_METHOD") {
@@ -1355,11 +1397,19 @@ export async function POST(request: Request) {
       if (!matchedItems.length) {
         reply = "Bisa, kak. Mau pesan produk yang mana dan berapa banyak? Kalau belum tahu pilihannya, aku bisa kirim menu yang tersedia.";
       } else {
+        const promo = evaluateBestPromo(
+          vouchers,
+          matchedItems.map((item) => ({
+            quantity: item.quantity,
+            price: item.product.price,
+          })),
+        );
         const totals = calculateOrderTotal({
           items: matchedItems.map((item) => ({
             quantity: item.quantity,
             price: item.product.price,
           })),
+          discountTotal: promo.discountTotal,
         });
         const orderCode = await generateAvailableOrderCode(supabase);
         const { data: order, error: orderError } = await supabase
@@ -1371,11 +1421,14 @@ export async function POST(request: Request) {
             source: "WHATSAPP",
             status: "PENDING_PAYMENT",
             subtotal: totals.subtotal,
-            discount_total: 0,
+            discount_total: totals.discountTotal,
             shipping_cost: 0,
             grand_total: totals.grandTotal,
             payment_status: "PENDING",
-            notes: `Created from WhatsApp ${whatsappNumber}`,
+            notes: [
+              `Created from WhatsApp ${whatsappNumber}`,
+              promo.label ? `Promo otomatis: ${promo.label}` : null,
+            ].filter(Boolean).join("\n"),
           })
           .select("*")
           .single();
@@ -1410,9 +1463,18 @@ export async function POST(request: Request) {
           status: "PENDING",
         });
 
+        if (promo.voucher && promo.discountTotal > 0) {
+          await supabase
+            .from("vouchers")
+            .update({ used_count: Number(promo.voucher.used_count ?? 0) + 1 })
+            .eq("id", promo.voucher.id);
+        }
+
         createdOrder = {
           ...(order as Order),
           items: orderItems as Order["items"],
+          subtotal: totals.subtotal,
+          discount_total: totals.discountTotal,
           grand_total: totals.grandTotal,
         };
         reply = buildPaymentReply(
@@ -1429,6 +1491,7 @@ export async function POST(request: Request) {
         intent: intent.intent,
         business,
         products,
+        vouchers,
         draftReply: reply,
         conversationHistory,
       });
