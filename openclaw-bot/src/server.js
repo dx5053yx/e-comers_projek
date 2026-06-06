@@ -6,6 +6,7 @@ import makeWASocket, {
 } from "@whiskeysockets/baileys";
 import http from "node:http";
 import path from "node:path";
+import { rm } from "node:fs/promises";
 import pino from "pino";
 import { loadConfig, normalizePhone } from "./config.js";
 
@@ -213,6 +214,12 @@ function publicSession(session) {
   };
 }
 
+function getSessionPath(businessSlug) {
+  const sessionRoot = config.sessionPath || "./session";
+
+  return path.resolve(sessionRoot, businessSlug);
+}
+
 async function postToWebhook(session, payload) {
   const response = await fetch(session.webhookUrl, {
     method: "POST",
@@ -321,6 +328,10 @@ async function startSession(input) {
     throw new Error("businessSlug wajib diisi.");
   }
 
+  if (input.reset === true) {
+    await stopSession(businessSlug, { purge: true });
+  }
+
   const existing = sessions.get(businessSlug);
 
   if (existing?.status === "connected" || existing?.status === "qr" || existing?.status === "connecting") {
@@ -342,8 +353,7 @@ async function startSession(input) {
 
   sessions.set(businessSlug, session);
 
-  const sessionRoot = config.sessionPath || "./session";
-  const sessionPath = path.resolve(sessionRoot, businessSlug);
+  const sessionPath = getSessionPath(businessSlug);
   const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
   const { version } = await fetchLatestBaileysVersion();
   const sock = makeWASocket({
@@ -404,20 +414,25 @@ async function startSession(input) {
   return session;
 }
 
-async function stopSession(businessSlug) {
+async function stopSession(businessSlug, { purge = false } = {}) {
   const session = sessions.get(businessSlug);
 
-  if (!session) {
-    return null;
+  if (session) {
+    session.status = "stopped";
+    session.qr = null;
+    await session.sock?.logout().catch(() => null);
+    session.sock?.end?.(undefined);
+    sessions.delete(businessSlug);
   }
 
-  session.status = "stopped";
-  session.qr = null;
-  await session.sock?.logout().catch(() => null);
-  session.sock?.end?.(undefined);
-  sessions.delete(businessSlug);
+  if (purge) {
+    await rm(getSessionPath(normalizeSlug(businessSlug)), {
+      force: true,
+      recursive: true,
+    });
+  }
 
-  return session;
+  return session ?? null;
 }
 
 const server = http.createServer(async (request, response) => {
@@ -450,8 +465,13 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (match && request.method === "DELETE") {
-      const session = await stopSession(match[1]);
-      jsonResponse(response, 200, { session: session ? publicSession(session) : null });
+      const session = await stopSession(match[1], {
+        purge: url.searchParams.get("purge") === "true",
+      });
+      jsonResponse(response, 200, {
+        session: session ? publicSession(session) : null,
+        purged: url.searchParams.get("purge") === "true",
+      });
       return;
     }
 

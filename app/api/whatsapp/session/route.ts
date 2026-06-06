@@ -90,7 +90,7 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const business = await getBusinessForRequest();
 
@@ -107,12 +107,16 @@ export async function POST() {
       return jsonError("OPENCLAW_WEBHOOK_SECRET belum diisi.", 500);
     }
 
+    const body = await request.json().catch(() => ({}));
+    const reset = body?.reset === true;
+
     const payload = await callBotApi("/sessions", {
       method: "POST",
       body: JSON.stringify({
         businessSlug: business.slug,
         webhookUrl,
         webhookSecret,
+        reset,
       }),
     });
 

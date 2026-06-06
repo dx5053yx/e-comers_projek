@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element, react-hooks/set-state-in-effect */
 
-import { Power, QrCode, RefreshCw, Save, Unplug } from "lucide-react";
+import { Power, QrCode, RefreshCw, RotateCcw, Save, Unplug } from "lucide-react";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [prompt, setPrompt] = useState(business.whatsapp_ai_prompt ?? "");
   const [message, setMessage] = useState<string | null>(null);
@@ -86,6 +87,31 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
       setMessage(payload?.session?.qr ? "QR siap. Scan dari WhatsApp bisnis." : "QR sedang dibuat, tunggu sebentar ya.");
     } finally {
       setIsConnecting(false);
+    }
+  }, []);
+
+  const resetQr = useCallback(async () => {
+    setIsResetting(true);
+    setQrDataUrl(null);
+    setMessage("Mereset session lama dan menyiapkan QR baru...");
+
+    try {
+      const response = await fetch("/api/whatsapp/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reset: true }),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setMessage(payload?.error ?? "Gagal reset QR WhatsApp.");
+        return;
+      }
+
+      setStatus(payload);
+      setMessage(payload?.session?.qr ? "QR baru siap. Scan dari WhatsApp bisnis." : "Session lama direset. QR sedang dibuat, tunggu sebentar.");
+    } finally {
+      setIsResetting(false);
     }
   }, []);
 
@@ -233,6 +259,19 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
                   <Power className="h-4 w-4" aria-hidden />
                 )}
                 Hubungkan
+              </Button>
+              <Button
+                disabled={isConnecting || isResetting}
+                onClick={resetQr}
+                type="button"
+                variant="outline"
+              >
+                {isResetting ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <RotateCcw className="h-4 w-4" aria-hidden />
+                )}
+                Reset QR
               </Button>
               <Button
                 disabled={isDisconnecting || !session}
