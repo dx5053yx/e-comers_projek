@@ -23,6 +23,20 @@ function numberOrNull(value: FormDataEntryValue | null) {
   return raw ? Number(raw) : null;
 }
 
+function getVoucherStatus(voucher: Voucher) {
+  if (isVoucherCurrentlyActive(voucher)) {
+    return {
+      label: "Aktif",
+      tone: "green" as const,
+    };
+  }
+
+  return {
+    label: voucher.is_active ? "Terjadwal/habis" : "Nonaktif",
+    tone: voucher.is_active ? ("amber" as const) : ("gray" as const),
+  };
+}
+
 export function VoucherManager({
   businessId,
   vouchers,
@@ -97,17 +111,17 @@ export function VoucherManager({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+    <div className="grid gap-5 xl:grid-cols-[420px_1fr] xl:gap-6">
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <CardTitle>Tambah promo</CardTitle>
               <CardDescription>
                 Promo aktif otomatis ditawarkan AI dan diterapkan ke order yang memenuhi syarat.
               </CardDescription>
             </div>
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-muted text-primary">
+            <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-primary sm:inline-flex">
               <Gift className="h-5 w-5" aria-hidden />
             </span>
           </div>
@@ -140,7 +154,7 @@ export function VoucherManager({
               <Input id="code" name="code" placeholder="Contoh: HEMAT10" required />
             </div>
             {promoKind === "DISCOUNT" ? (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="type">Tipe diskon</Label>
                   <Select
@@ -165,7 +179,7 @@ export function VoucherManager({
                 </div>
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="buy_quantity">Beli</Label>
                   <Input id="buy_quantity" min={1} name="buy_quantity" placeholder="Contoh: 3" required type="number" />
@@ -176,7 +190,7 @@ export function VoucherManager({
                 </div>
               </div>
             )}
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="min_purchase">Minimal belanja</Label>
                 <Input id="min_purchase" inputMode="numeric" name="min_purchase" placeholder="Contoh: 50.000" />
@@ -197,7 +211,7 @@ export function VoucherManager({
               <Label htmlFor="max_uses">Kuota penggunaan</Label>
               <Input id="max_uses" min={1} name="max_uses" placeholder="Contoh: 100, kosongkan jika bebas" type="number" />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="starts_at">Mulai</Label>
                 <Input id="starts_at" name="starts_at" type="datetime-local" />
@@ -219,7 +233,7 @@ export function VoucherManager({
               <input id="is_active" name="is_active" type="checkbox" defaultChecked className="h-4 w-4" />
               Aktifkan promo
             </label>
-            <Button disabled={isSaving} type="submit">
+            <Button className="w-full" disabled={isSaving} type="submit">
               {isSaving ? (
                 <RotateCcw className="h-4 w-4 animate-spin" aria-hidden />
               ) : (
@@ -234,7 +248,7 @@ export function VoucherManager({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <CardTitle>Daftar promo</CardTitle>
               <CardDescription>
                 {activeCount} promo sedang aktif dan bisa ditawarkan AI ke customer.
@@ -243,8 +257,77 @@ export function VoucherManager({
             <Badge tone="green">{activeCount} aktif</Badge>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="table-scroll border-0">
+        <CardContent className="p-0 md:px-0">
+          <div className="grid gap-3 px-4 pb-4 md:hidden">
+            {vouchers.map((voucher) => {
+              const status = getVoucherStatus(voucher);
+
+              return (
+                <div key={voucher.id} className="rounded-md border border-border bg-background p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold leading-snug">{voucher.title || voucher.code}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {describeVoucher(voucher)}
+                      </p>
+                    </div>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                  </div>
+                  <div className="mt-4 grid gap-2 rounded-md bg-muted/35 p-3 text-sm">
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Jenis</span>
+                      <span className="font-medium">
+                        {voucher.promo_kind === "BUY_X_GET_Y" ? "Beli X Gratis Y" : "Diskon"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Minimal belanja</span>
+                      <span className="font-medium">
+                        {Number(voucher.min_purchase) > 0 ? formatCurrency(voucher.min_purchase) : "Bebas"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Minimal item</span>
+                      <span className="font-medium">
+                        {Number(voucher.min_quantity) > 0 ? `${voucher.min_quantity}+` : "Bebas"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Terpakai</span>
+                      <span className="font-medium">
+                        {voucher.max_uses ? `${voucher.used_count}/${voucher.max_uses}` : `${voucher.used_count}x`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Periode</span>
+                      <span className="text-right font-medium">
+                        {voucher.starts_at ? formatDate(voucher.starts_at) : "Sekarang"} - {voucher.ends_at ? formatDate(voucher.ends_at) : "bebas"}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    className="mt-4 w-full"
+                    onClick={() => toggleVoucher(voucher)}
+                    variant={voucher.is_active ? "outline" : "secondary"}
+                  >
+                    {voucher.is_active ? (
+                      <ToggleLeft className="h-4 w-4" aria-hidden />
+                    ) : (
+                      <ToggleRight className="h-4 w-4" aria-hidden />
+                    )}
+                    {voucher.is_active ? "Nonaktifkan" : "Aktifkan"}
+                  </Button>
+                </div>
+              );
+            })}
+            {!vouchers.length ? (
+              <div className="grid justify-items-center gap-2 rounded-md border border-border bg-background px-4 py-10 text-center text-muted-foreground">
+                <Ticket className="h-8 w-8" aria-hidden />
+                Belum ada promo. Buat promo pertama dari form di atas.
+              </div>
+            ) : null}
+          </div>
+          <div className="table-scroll hidden border-0 md:block">
             <Table>
               <thead>
                 <tr>
@@ -292,9 +375,7 @@ export function VoucherManager({
                       </div>
                     </Td>
                     <Td>
-                      <Badge tone={isVoucherCurrentlyActive(voucher) ? "green" : voucher.is_active ? "amber" : "gray"}>
-                        {isVoucherCurrentlyActive(voucher) ? "Aktif" : voucher.is_active ? "Terjadwal/habis" : "Nonaktif"}
-                      </Badge>
+                      <Badge tone={getVoucherStatus(voucher).tone}>{getVoucherStatus(voucher).label}</Badge>
                     </Td>
                     <Td>
                       <Button

@@ -56,7 +56,7 @@ export function DashboardNav({ variant = "sidebar" }: { variant?: "sidebar" | "m
 
   if (variant === "mobile") {
     return (
-      <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-3 lg:hidden">
+      <nav className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-3 lg:hidden">
         {navGroups.flatMap((group) => group.items).map((item) => {
           const active = isActive(pathname, item.href);
 
@@ -66,7 +66,7 @@ export function DashboardNav({ variant = "sidebar" }: { variant?: "sidebar" | "m
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "inline-flex h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-sm font-medium transition",
+                "inline-flex h-10 shrink-0 snap-start items-center gap-2 rounded-md border px-3 text-sm font-medium transition",
                 active
                   ? "border-primary bg-primary text-primary-foreground shadow-sm"
                   : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground",

@@ -52,7 +52,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       </aside>
       <div className="lg:pl-[280px]">
         <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
-          <div className="mx-auto flex min-h-16 max-w-[1500px] items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="mx-auto flex min-h-16 max-w-[1500px] items-center justify-between gap-3 px-3 sm:gap-4 sm:px-6">
             <div className="min-w-0">
               <Link className="flex items-center gap-3 lg:hidden" href="/">
                 <span className="relative h-9 w-9 overflow-hidden rounded-md border border-border bg-white">
@@ -69,7 +69,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <ThemeToggle />
               {business?.slug ? (
                 <Link
@@ -86,15 +86,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 href="/dashboard/whatsapp"
               >
                 <MessageSquareText className="h-4 w-4" aria-hidden />
-                WhatsApp
+                <span className="hidden sm:inline">WhatsApp</span>
               </Link>
             </div>
           </div>
-          <div className="mx-auto max-w-[1500px] px-4 sm:px-6">
+          <div className="mx-auto max-w-[1500px] px-3 sm:px-6">
             <DashboardNav variant="mobile" />
           </div>
         </header>
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:py-8">
+        <main className="mx-auto max-w-[1500px] px-3 py-5 sm:px-6 sm:py-6 lg:py-8">
           {children}
         </main>
       </div>

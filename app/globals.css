@@ -128,8 +128,20 @@ textarea {
 
 .table-scroll {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
   box-shadow: var(--card-shadow);
+}
+
+@media (max-width: 640px) {
+  .container-page {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .table-scroll {
+    border-radius: 0.375rem;
+  }
 }

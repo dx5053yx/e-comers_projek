@@ -200,13 +200,13 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <section className="rounded-md border border-border bg-card p-5">
+      <section className="rounded-md border border-border bg-card p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm text-muted-foreground">Nomor WhatsApp bisnis</p>
-            <p className="mt-1 text-lg font-semibold">{business.whatsapp_number ?? "Belum diisi"}</p>
+            <p className="mt-1 break-all text-lg font-semibold">{business.whatsapp_number ?? "Belum diisi"}</p>
           </div>
-          <div className="rounded-md border border-border px-3 py-2 text-sm">
+          <div className="w-full rounded-md border border-border px-3 py-2 text-sm sm:w-auto">
             <span className="text-muted-foreground">Status: </span>
             <span className={isConnected ? "font-semibold text-primary" : "font-semibold"}>
               {statusLabel}
@@ -215,12 +215,12 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-[280px_1fr]">
-          <div className="flex min-h-[280px] items-center justify-center rounded-md border border-border bg-muted/30 p-4">
+          <div className="flex min-h-[240px] items-center justify-center rounded-md border border-border bg-muted/30 p-3 sm:min-h-[280px] sm:p-4">
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
                 alt="QR WhatsApp"
-                className="h-[260px] w-[260px]"
+                className="aspect-square w-full max-w-[260px]"
               />
             ) : (
               <div className="grid justify-items-center gap-3 text-center text-sm text-muted-foreground">
@@ -251,8 +251,8 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button disabled={isConnecting || isConnected} onClick={() => connect()} type="button">
+            <div className="grid gap-2 sm:flex sm:flex-wrap">
+              <Button className="w-full sm:w-auto" disabled={isConnecting || isConnected} onClick={() => connect()} type="button">
                 {isConnecting ? (
                   <RefreshCw className="h-4 w-4 animate-spin" aria-hidden />
                 ) : (
@@ -261,6 +261,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
                 Hubungkan
               </Button>
               <Button
+                className="w-full sm:w-auto"
                 disabled={isConnecting || isResetting}
                 onClick={resetQr}
                 type="button"
@@ -274,6 +275,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
                 Reset QR
               </Button>
               <Button
+                className="w-full sm:w-auto"
                 disabled={isDisconnecting || !session}
                 onClick={disconnect}
                 type="button"
@@ -297,7 +299,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
         </div>
       </section>
 
-      <section className="rounded-md border border-border bg-card p-5">
+      <section className="rounded-md border border-border bg-card p-4 sm:p-5">
         <div className="space-y-2">
           <Label htmlFor="whatsapp_ai_prompt">Custom prompt AI</Label>
           <Textarea
@@ -313,7 +315,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
           </p>
         </div>
         <Button
-          className="mt-4"
+          className="mt-4 w-full"
           disabled={isSavingPrompt}
           onClick={savePrompt}
           type="button"
