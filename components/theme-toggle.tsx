@@ -26,7 +26,13 @@ function applyTheme(theme: ThemeMode) {
   document.documentElement.dataset.theme = theme;
 }
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  showLabel = true,
+}: {
+  className?: string;
+  showLabel?: boolean;
+}) {
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
 
   useEffect(() => {
@@ -57,7 +63,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       ) : (
         <Moon className="h-4 w-4 text-primary" aria-hidden />
       )}
-      <span className="hidden sm:inline">{isDark ? "Light" : "Dark"}</span>
+      {showLabel ? <span>{isDark ? "Mode terang" : "Mode gelap"}</span> : null}
     </button>
   );
 }

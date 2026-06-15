@@ -1,10 +1,11 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { BusinessSettingsForm } from "@/components/dashboard/business-settings-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentBusiness, isDemoMode } from "@/lib/data/queries";
+import { getCurrentBusinessAccess, isDemoMode } from "@/lib/data/queries";
 
 export default async function SettingsPage() {
-  const business = await getCurrentBusiness();
+  const access = await getCurrentBusinessAccess();
+  const business = access.business;
 
   return (
     <div className="space-y-6">
@@ -15,7 +16,7 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           {business ? (
-            <BusinessSettingsForm business={business} />
+            <BusinessSettingsForm business={business} readOnly={access.role === "VIEWER"} />
           ) : (
             <p className="text-sm text-muted-foreground">
               Belum ada bisnis. Daftar ulang atau buat business profile terlebih dahulu.

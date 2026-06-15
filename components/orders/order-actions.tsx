@@ -55,9 +55,11 @@ const shipmentStatuses: ShipmentStatus[] = [
 export function OrderActions({
   order,
   nextOrderHref,
+  readOnly = false,
 }: {
   order: Order;
   nextOrderHref?: string | null;
+  readOnly?: boolean;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<string | null>(null);
@@ -102,6 +104,48 @@ export function OrderActions({
   }
 
   const paymentTone = order.payment_status === "PAID" ? "green" : "amber";
+
+  if (readOnly) {
+    return (
+      <Card className="xl:sticky xl:top-24">
+        <CardHeader className="border-b border-border">
+          <CardTitle>Status order</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Mode tamu menampilkan status tanpa kontrol perubahan.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Pesanan</span>
+            <Badge tone={getOrderStatusTone(order.status)}>
+              {orderStatusLabels[order.status]}
+            </Badge>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Pembayaran</span>
+            <Badge tone={paymentTone}>{paymentStatusLabels[order.payment_status]}</Badge>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Pengiriman</span>
+            <span className="text-right text-sm font-semibold">
+              {shipmentStatusLabels[order.shipment?.status ?? "NOT_SHIPPED"]}
+            </span>
+          </div>
+          {order.payment?.proof_url ? (
+            <a
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:border-primary/30 hover:bg-muted/70"
+              href={order.payment.proof_url}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <ReceiptText className="h-4 w-4" aria-hidden />
+              Lihat bukti transfer
+            </a>
+          ) : null}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="xl:sticky xl:top-24">

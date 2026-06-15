@@ -1,15 +1,18 @@
-import { ExternalLink, MessageSquareText, PackageCheck } from "lucide-react";
+import { Eye, ExternalLink, LogOut, MessageSquareText, PackageCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { logoutAction } from "@/app/dashboard/actions";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
-import { getCurrentBusiness, isDemoMode } from "@/lib/data/queries";
+import { getCurrentBusinessAccess, isDemoMode } from "@/lib/data/queries";
 import { formatWhatsAppNumber } from "@/lib/whatsapp";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const business = await getCurrentBusiness();
+  const access = await getCurrentBusinessAccess();
+  const business = access.business;
+  const readOnly = access.role === "VIEWER";
   const demo = isDemoMode();
 
   return (
@@ -34,18 +37,32 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                     {business?.category ?? "UMKM lokal"}
                   </p>
                 </div>
-                <Badge tone={demo ? "amber" : "green"}>{demo ? "Demo" : "Aktif"}</Badge>
+                <Badge tone={demo || readOnly ? "amber" : "green"}>
+                  {readOnly ? "Tamu" : demo ? "Demo" : "Aktif"}
+                </Badge>
               </div>
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
                 {formatWhatsAppNumber(business?.whatsapp_number)}
               </p>
             </div>
           </div>
-          <DashboardNav />
-          <div className="border-t border-border p-4 text-xs text-muted-foreground">
+          <DashboardNav readOnly={readOnly} />
+          <div className="space-y-2 border-t border-border p-4">
+            <ThemeToggle className="w-full justify-start" />
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="inline-flex h-10 w-full items-center justify-start gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold text-foreground transition hover:border-danger/40 hover:text-danger"
+              >
+                <LogOut className="h-4 w-4" aria-hidden />
+                Keluar
+              </button>
+            </form>
             <div className="flex items-center gap-2">
               <PackageCheck className="h-4 w-4 text-primary" aria-hidden />
-              Siap untuk demo dan deploy
+              <span className="text-xs text-muted-foreground">
+                {readOnly ? "Akses presentasi hanya-baca" : "Siap untuk demo dan deploy"}
+              </span>
             </div>
           </div>
         </div>
@@ -70,10 +87,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <ThemeToggle />
               {business?.slug ? (
                 <Link
-                  className="hidden h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium text-muted-foreground transition hover:border-primary/30 hover:text-foreground sm:inline-flex"
+                  className="hidden h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium text-muted-foreground transition hover:border-primary/30 hover:text-foreground lg:inline-flex"
                   href={`/katalog/${business.slug}`}
                   target="_blank"
                 >
@@ -82,19 +98,32 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 </Link>
               ) : null}
               <Link
-                className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
+                className="hidden h-10 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 lg:inline-flex"
                 href="/dashboard/whatsapp"
               >
                 <MessageSquareText className="h-4 w-4" aria-hidden />
-                <span className="hidden sm:inline">WhatsApp</span>
+                <span>WhatsApp</span>
               </Link>
+              <DashboardNav
+                variant="mobile"
+                catalogHref={business?.slug ? `/katalog/${business.slug}` : undefined}
+                readOnly={readOnly}
+              />
             </div>
-          </div>
-          <div className="mx-auto max-w-[1500px] px-3 sm:px-6">
-            <DashboardNav variant="mobile" />
           </div>
         </header>
         <main className="mx-auto max-w-[1500px] px-3 py-5 sm:px-6 sm:py-6 lg:py-8">
+          {readOnly ? (
+            <div className="mb-5 flex items-start gap-3 rounded-md border border-amber-300/70 bg-amber-100/70 px-4 py-3 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+              <Eye className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <div>
+                <p className="font-semibold">Mode tamu hanya-baca</p>
+                <p className="mt-1 leading-5">
+                  Kamu dapat menjelajahi seluruh dashboard, tetapi perubahan data dinonaktifkan.
+                </p>
+              </div>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

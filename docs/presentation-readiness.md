@@ -58,9 +58,17 @@ NEXT_PUBLIC_SUPABASE_QRIS_IMAGES_BUCKET=qris-images
 SUPABASE_PRODUCT_IMAGES_BUCKET=product-images
 SUPABASE_QRIS_IMAGES_BUCKET=qris-images
 SUPABASE_PAYMENT_PROOFS_BUCKET=payment-proofs
+
+GUEST_ACCOUNT_EMAIL=
+GUEST_ACCOUNT_PASSWORD=
+GUEST_BUSINESS_SLUG=
 ```
 
 `OPENCLAW_BOT_API_URL` tidak boleh `localhost` saat di Vercel. Bot WhatsApp harus jalan di server persistent seperti Railway, Render, VPS, atau komputer lokal dengan tunnel untuk demo.
+
+Untuk akun presentasi hanya-baca, jalankan migration
+`20260615090000_add_guest_viewer_access.sql`, isi tiga env `GUEST_*`, lalu
+redeploy. Pengunjung dapat masuk dari tombol **Lihat dashboard sebagai tamu**.
 
 ## Urutan Deploy
 

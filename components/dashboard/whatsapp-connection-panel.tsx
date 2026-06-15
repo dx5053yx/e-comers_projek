@@ -26,7 +26,13 @@ type StatusResponse = {
 const defaultPrompt =
   "Default: AI membalas seperti admin toko yang ramah sekaligus sales. Setelah menjawab pertanyaan, AI boleh menawarkan produk ready, bantu pilih menu, tanya jumlah, dan mengarahkan customer ke order secara halus. Tetap wajib menjaga fakta produk, harga, stok, order, pembayaran, dan QRIS.";
 
-export function WhatsAppConnectionPanel({ business }: { business: Business }) {
+export function WhatsAppConnectionPanel({
+  business,
+  readOnly = false,
+}: {
+  business: Business;
+  readOnly?: boolean;
+}) {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -170,7 +176,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
   }, []);
 
   useEffect(() => {
-    if (!status || status.botError || status.session || autoStartRef.current) {
+    if (readOnly || !status || status.botError || status.session || autoStartRef.current) {
       return;
     }
 
@@ -178,7 +184,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
     connect({ automatic: true }).catch((error) => {
       setMessage(error instanceof Error ? error.message : "Gagal menyiapkan QR WhatsApp.");
     });
-  }, [connect, status]);
+  }, [connect, readOnly, status]);
 
   useEffect(() => {
     if (!session?.qr) {
@@ -201,6 +207,12 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <section className="rounded-md border border-border bg-card p-4 sm:p-5">
+        {readOnly ? (
+          <div className="mb-4 rounded-md border border-amber-300/70 bg-amber-100/70 px-3 py-2 text-sm text-amber-950">
+            Status WhatsApp dapat dilihat, tetapi koneksi dan prompt tidak dapat diubah oleh akun
+            tamu.
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm text-muted-foreground">Nomor WhatsApp bisnis</p>
@@ -252,7 +264,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
             </div>
 
             <div className="grid gap-2 sm:flex sm:flex-wrap">
-              <Button className="w-full sm:w-auto" disabled={isConnecting || isConnected} onClick={() => connect()} type="button">
+              <Button className="w-full sm:w-auto" disabled={readOnly || isConnecting || isConnected} onClick={() => connect()} type="button">
                 {isConnecting ? (
                   <RefreshCw className="h-4 w-4 animate-spin" aria-hidden />
                 ) : (
@@ -262,7 +274,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
               </Button>
               <Button
                 className="w-full sm:w-auto"
-                disabled={isConnecting || isResetting}
+                disabled={readOnly || isConnecting || isResetting}
                 onClick={resetQr}
                 type="button"
                 variant="outline"
@@ -276,7 +288,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
               </Button>
               <Button
                 className="w-full sm:w-auto"
-                disabled={isDisconnecting || !session}
+                disabled={readOnly || isDisconnecting || !session}
                 onClick={disconnect}
                 type="button"
                 variant="secondary"
@@ -308,6 +320,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
             onChange={(event) => setPrompt(event.target.value)}
             placeholder={defaultPrompt}
             rows={12}
+            disabled={readOnly}
           />
           <p className="text-xs text-muted-foreground">
             Kosongkan untuk memakai gaya default. Isi bagian ini kalau toko ingin gaya balasan tertentu,
@@ -316,7 +329,7 @@ export function WhatsAppConnectionPanel({ business }: { business: Business }) {
         </div>
         <Button
           className="mt-4 w-full"
-          disabled={isSavingPrompt}
+          disabled={readOnly || isSavingPrompt}
           onClick={savePrompt}
           type="button"
         >

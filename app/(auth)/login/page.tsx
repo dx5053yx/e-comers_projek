@@ -1,5 +1,7 @@
+import { Eye, LockKeyhole } from "lucide-react";
 import Link from "next/link";
-import { loginAction } from "./actions";
+import { guestLoginAction, isGuestLoginConfigured, loginAction } from "./actions";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/form";
@@ -12,12 +14,19 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const demo = isDemoMode();
+  const guestLoginAvailable = demo || (await isGuestLoginConfigured());
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <main className="relative flex min-h-screen items-center justify-center bg-background px-4 py-12">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle showLabel={false} />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Login admin</CardTitle>
+          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <LockKeyhole className="h-5 w-5" aria-hidden />
+          </div>
+          <CardTitle className="pt-2">Masuk ke siPandu</CardTitle>
           <CardDescription>
             Masuk untuk mengelola produk, order, payment, dan laporan UMKM.
           </CardDescription>
@@ -43,9 +52,28 @@ export default async function LoginPage({
               <Input id="password" name="password" type="password" placeholder="Masukkan password akun" required />
             </div>
             <Button className="w-full" type="submit">
-              Login
+              Masuk sebagai pengelola
             </Button>
           </form>
+          {guestLoginAvailable ? (
+            <>
+              <div className="my-5 flex items-center gap-3 text-xs uppercase text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                atau
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <form action={guestLoginAction}>
+                <Button className="w-full" type="submit" variant="outline">
+                  <Eye className="h-4 w-4" aria-hidden />
+                  Lihat dashboard sebagai tamu
+                </Button>
+              </form>
+              <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">
+                Cocok untuk dosen dan pengunjung presentasi. Data hanya dapat dilihat dan tidak
+                bisa diubah.
+              </p>
+            </>
+          ) : null}
           <p className="mt-5 text-center text-sm text-muted-foreground">
             Belum punya akun?{" "}
             <Link className="font-medium text-primary" href="/register">

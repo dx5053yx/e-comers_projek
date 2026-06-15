@@ -25,7 +25,7 @@ export default async function UmkmDirectoryPage() {
             </span>
           </Link>
           <nav className="flex items-center gap-3 text-sm font-medium">
-            <ThemeToggle />
+            <ThemeToggle showLabel={false} />
             <Link className="text-muted-foreground hover:text-foreground" href="/#tentang">
               Tentang
             </Link>

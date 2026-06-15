@@ -134,13 +134,16 @@ export default async function Home() {
             <Link className="transition hover:text-primary" href="#harga">Harga</Link>
             <Link className="transition hover:text-primary" href="#umkm">UMKM</Link>
           </nav>
-          <ThemeToggle />
-          <Link
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:bg-primary/90"
-            href="/dashboard"
-          >
-            Masuk Dashboard
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle showLabel={false} />
+            <Link
+              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:bg-primary/90 sm:px-4"
+              href="/dashboard"
+            >
+              <span className="sm:hidden">Masuk</span>
+              <span className="hidden sm:inline">Masuk Dashboard</span>
+            </Link>
+          </div>
         </div>
       </header>
 

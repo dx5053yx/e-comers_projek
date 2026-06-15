@@ -10,11 +10,56 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Business } from "@/lib/types";
 import { slugify } from "@/lib/utils";
 
-export function BusinessSettingsForm({ business }: { business: Business }) {
+export function BusinessSettingsForm({
+  business,
+  readOnly = false,
+}: {
+  business: Business;
+  readOnly?: boolean;
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const [qrisImageUrl, setQrisImageUrl] = useState(business.qris_image_url ?? "");
   const [isUploadingQris, setIsUploadingQris] = useState(false);
   const router = useRouter();
+
+  if (readOnly) {
+    const details = [
+      ["Nama bisnis", business.name],
+      ["Slug katalog", business.slug],
+      ["Kategori", business.category ?? "-"],
+      ["WhatsApp", business.whatsapp_number ?? "-"],
+      ["Alamat", business.address ?? "-"],
+      ["Deskripsi", business.description ?? "-"],
+      ["Instruksi pembayaran", business.payment_instructions ?? "-"],
+    ];
+
+    return (
+      <div className="space-y-4">
+        <div className="rounded-md border border-amber-300/70 bg-amber-100/70 px-3 py-2 text-sm text-amber-950">
+          Profil bisnis ditampilkan dalam mode hanya-baca untuk akun tamu.
+        </div>
+        <dl className="grid gap-3 md:grid-cols-2">
+          {details.map(([label, value]) => (
+            <div
+              key={label}
+              className="rounded-md border border-border bg-background px-4 py-3 md:last:col-span-2"
+            >
+              <dt className="text-xs font-semibold uppercase text-muted-foreground">{label}</dt>
+              <dd className="mt-1 whitespace-pre-wrap text-sm font-medium">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        {qrisImageUrl ? (
+          <div className="rounded-md border border-border bg-background p-4">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">QRIS toko</p>
+            <div className="relative mt-3 aspect-square w-full max-w-[240px] overflow-hidden rounded-md bg-white">
+              <Image src={qrisImageUrl} alt="QRIS toko" fill className="object-contain p-2" />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   function validateWhatsapp(value: string) {
     if (!value) {

@@ -53,6 +53,7 @@ insert into public.products (
   description,
   sku,
   price,
+  image_url,
   is_active
 )
 values
@@ -65,6 +66,7 @@ values
     'Seblak kuah pedas dengan kerupuk, telur, dan sayuran.',
     'SBK-ORI',
     10000,
+    '/products/seblak-original.webp',
     true
   ),
   (
@@ -76,6 +78,7 @@ values
     'Seblak dengan topping seafood dan bakso ikan.',
     'SBK-SEA',
     15000,
+    '/products/seblak-seafood.webp',
     true
   ),
   (
@@ -87,6 +90,7 @@ values
     'Es teh manis segar untuk pendamping makanan pedas.',
     'MNM-EST',
     4000,
+    '/products/es-teh.webp',
     true
   )
 on conflict (id) do update set
@@ -95,6 +99,7 @@ on conflict (id) do update set
   description = excluded.description,
   sku = excluded.sku,
   price = excluded.price,
+  image_url = excluded.image_url,
   is_active = excluded.is_active;
 
 insert into public.product_variants (

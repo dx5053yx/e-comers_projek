@@ -1,10 +1,11 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { WhatsAppConnectionPanel } from "@/components/dashboard/whatsapp-connection-panel";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getCurrentBusiness } from "@/lib/data/queries";
+import { getCurrentBusinessAccess } from "@/lib/data/queries";
 
 export default async function WhatsAppPage() {
-  const business = await getCurrentBusiness();
+  const access = await getCurrentBusinessAccess();
+  const business = access.business;
 
   if (!business) {
     return (
@@ -21,7 +22,7 @@ export default async function WhatsAppPage() {
         title="WhatsApp"
         description="Hubungkan nomor WhatsApp bisnis, scan QR, dan atur gaya balasan AI."
       />
-      <WhatsAppConnectionPanel business={business} />
+      <WhatsAppConnectionPanel business={business} readOnly={access.role === "VIEWER"} />
     </div>
   );
 }

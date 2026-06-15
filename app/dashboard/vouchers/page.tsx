@@ -1,9 +1,10 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { VoucherManager } from "@/components/vouchers/voucher-manager";
-import { getCurrentBusiness, getVouchers } from "@/lib/data/queries";
+import { getCurrentBusinessAccess, getVouchers } from "@/lib/data/queries";
 
 export default async function VouchersPage() {
-  const business = await getCurrentBusiness();
+  const access = await getCurrentBusinessAccess();
+  const business = access.business;
   const vouchers = await getVouchers(business?.id);
 
   if (!business) {
@@ -16,7 +17,11 @@ export default async function VouchersPage() {
         title="Promo & voucher"
         description="Buat voucher diskon dan promo beli X gratis Y. Promo aktif otomatis dipakai AI saat order memenuhi syarat."
       />
-      <VoucherManager businessId={business.id} vouchers={vouchers} />
+      <VoucherManager
+        businessId={business.id}
+        vouchers={vouchers}
+        readOnly={access.role === "VIEWER"}
+      />
     </div>
   );
 }

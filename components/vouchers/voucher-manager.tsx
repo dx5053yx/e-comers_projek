@@ -40,9 +40,11 @@ function getVoucherStatus(voucher: Voucher) {
 export function VoucherManager({
   businessId,
   vouchers,
+  readOnly = false,
 }: {
   businessId: string;
   vouchers: Voucher[];
+  readOnly?: boolean;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [promoKind, setPromoKind] = useState<PromoKind>("DISCOUNT");
@@ -50,6 +52,55 @@ export function VoucherManager({
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
   const activeCount = vouchers.filter((voucher) => isVoucherCurrentlyActive(voucher)).length;
+
+  if (readOnly) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Daftar promo</CardTitle>
+              <CardDescription>
+                Mode tamu menampilkan promo tanpa kontrol untuk membuat atau mengubah data.
+              </CardDescription>
+            </div>
+            <Badge tone="green">{activeCount} aktif</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {vouchers.map((voucher) => {
+              const status = getVoucherStatus(voucher);
+
+              return (
+                <div key={voucher.id} className="rounded-md border border-border bg-background p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold">{voucher.title || voucher.code}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{voucher.code}</p>
+                    </div>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                    {describeVoucher(voucher)}
+                  </p>
+                  <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+                    Terpakai {voucher.used_count}
+                    {voucher.max_uses ? ` dari ${voucher.max_uses}` : " kali"}
+                  </div>
+                </div>
+              );
+            })}
+            {!vouchers.length ? (
+              <div className="rounded-md border border-border bg-background p-6 text-sm text-muted-foreground">
+                Belum ada promo yang dibuat.
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

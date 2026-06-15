@@ -1,9 +1,9 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ProductActions } from "@/components/products/product-actions";
 import { ProductForm } from "@/components/products/product-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentBusiness, getProduct } from "@/lib/data/queries";
+import { getCurrentBusinessAccess, getProduct } from "@/lib/data/queries";
 
 export default async function EditProductPage({
   params,
@@ -11,7 +11,11 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [business, product] = await Promise.all([getCurrentBusiness(), getProduct(id)]);
+  const [access, product] = await Promise.all([getCurrentBusinessAccess(), getProduct(id)]);
+
+  if (access.role === "VIEWER") {
+    redirect("/dashboard/products");
+  }
 
   if (!product) {
     notFound();
@@ -20,7 +24,7 @@ export default async function EditProductPage({
   return (
     <div className="space-y-6">
       <PageHeader title="Edit produk" description={product.name} />
-      <ProductForm businessId={business?.id ?? ""} product={product} />
+      <ProductForm businessId={access.business?.id ?? ""} product={product} />
       <Card>
         <CardHeader>
           <CardTitle>Aksi produk</CardTitle>

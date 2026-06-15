@@ -11,14 +11,20 @@ export function ProductActions({
   productName,
   isActive,
   showEdit = true,
+  readOnly = false,
 }: {
   productId: string;
   productName: string;
   isActive: boolean;
   showEdit?: boolean;
+  readOnly?: boolean;
 }) {
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
+
+  if (readOnly) {
+    return <span className="text-xs font-medium text-muted-foreground">Hanya lihat</span>;
+  }
 
   async function updateProductStatus(nextActive: boolean) {
     const confirmed = nextActive

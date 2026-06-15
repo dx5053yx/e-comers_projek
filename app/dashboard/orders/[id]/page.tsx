@@ -17,7 +17,7 @@ import { OrderActions } from "@/components/orders/order-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Td, Th, Table } from "@/components/ui/table";
-import { getCurrentBusiness, getOrder, getOrders } from "@/lib/data/queries";
+import { getCurrentBusinessAccess, getOrder, getOrders } from "@/lib/data/queries";
 import {
   getOrderStatusTone,
   orderStatusLabels,
@@ -64,7 +64,8 @@ export default async function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const business = await getCurrentBusiness();
+  const access = await getCurrentBusinessAccess();
+  const business = access.business;
   const [order, orders] = await Promise.all([
     getOrder(id),
     getOrders(business?.id),
@@ -258,7 +259,11 @@ export default async function OrderDetailPage({
         </div>
 
         <aside className="space-y-6">
-          <OrderActions order={order} nextOrderHref={nextHref} />
+          <OrderActions
+            order={order}
+            nextOrderHref={nextHref}
+            readOnly={access.role === "VIEWER"}
+          />
 
           <Card>
             <CardHeader className="border-b border-border">

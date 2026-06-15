@@ -5,6 +5,8 @@
 1. Buat project Supabase.
 2. Set project password dan region.
 3. Jalankan migration di `supabase/migrations`.
+   Pastikan migration `20260615090000_add_guest_viewer_access.sql` ikut dijalankan
+   jika akun tamu presentasi akan digunakan.
 4. Jalankan `supabase/seed.sql` jika butuh data demo.
 5. Pastikan bucket `product-images` dan `payment-proofs` dibuat oleh migration.
 6. Copy `Project URL`, `anon key`, dan `service role key` ke hosting.
@@ -17,6 +19,19 @@
 4. Deploy.
 5. Pastikan `NEXT_PUBLIC_APP_URL` dan `NEXT_WEBHOOK_URL` memakai domain Vercel, bukan localhost.
 6. Test `/`, `/umkm`, `/login`, `/register`, `/dashboard`, `/katalog/<slug>`, dan `/api/webhooks/openclaw`.
+
+### Akun Tamu Presentasi
+
+Tambahkan environment variable server-only berikut di Vercel:
+
+```env
+GUEST_ACCOUNT_EMAIL=guest@sipandu.local
+GUEST_ACCOUNT_PASSWORD=password-kuat-khusus-tamu
+GUEST_BUSINESS_SLUG=slug-toko-yang-ditampilkan
+```
+
+Setelah redeploy, tombol **Lihat dashboard sebagai tamu** muncul di `/login`.
+Akun dibuat otomatis pada penggunaan pertama dan mendapat role `VIEWER`.
 
 ## 3. OpenClaw
 

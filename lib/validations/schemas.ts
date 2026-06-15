@@ -19,10 +19,13 @@ const nullableOptionalLongText = z
 const optionalUrl = z
   .string()
   .trim()
-  .url("URL tidak valid.")
   .optional()
   .nullable()
   .or(z.literal(""))
+  .refine(
+    (value) => !value || value.startsWith("/") || URL.canParse(value),
+    "URL tidak valid.",
+  )
   .transform((value) => (value === "" ? null : value));
 
 const indonesiaPhone = z

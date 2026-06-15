@@ -74,9 +74,17 @@ export function isDemoMode() {
   return !isSupabaseServerConfigured();
 }
 
-export async function getCurrentBusiness() {
+export type BusinessAccessRole = "OWNER" | "STAFF" | "VIEWER";
+
+export async function getCurrentBusinessAccess(): Promise<{
+  business: Business | null;
+  role: BusinessAccessRole;
+}> {
   if (isDemoMode()) {
-    return demoBusiness;
+    return {
+      business: demoBusiness,
+      role: "OWNER",
+    };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -90,7 +98,7 @@ export async function getCurrentBusiness() {
 
   const { data, error } = await supabase
     .from("business_members")
-    .select("business_id, business:businesses(*)")
+    .select("role, business_id, business:businesses(*)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -99,7 +107,22 @@ export async function getCurrentBusiness() {
     throw error;
   }
 
-  return firstRelation(data?.business as unknown as Business | Business[] | null);
+  return {
+    business: firstRelation(data?.business as unknown as Business | Business[] | null),
+    role: (data?.role as BusinessAccessRole | null) ?? "STAFF",
+  };
+}
+
+export async function getCurrentBusiness() {
+  const access = await getCurrentBusinessAccess();
+
+  return access.business;
+}
+
+export async function isCurrentBusinessReadOnly() {
+  const access = await getCurrentBusinessAccess();
+
+  return access.role === "VIEWER";
 }
 
 export async function getProducts(businessId?: string) {

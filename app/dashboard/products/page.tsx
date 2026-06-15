@@ -4,11 +4,13 @@ import { ProductActions } from "@/components/products/product-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Td, Th, Table } from "@/components/ui/table";
-import { getCurrentBusiness, getProducts } from "@/lib/data/queries";
+import { getCurrentBusinessAccess, getProducts } from "@/lib/data/queries";
 import { formatCurrency } from "@/lib/utils";
 
 export default async function ProductsPage() {
-  const business = await getCurrentBusiness();
+  const access = await getCurrentBusinessAccess();
+  const business = access.business;
+  const readOnly = access.role === "VIEWER";
   const products = await getProducts(business?.id);
 
   return (
@@ -16,7 +18,7 @@ export default async function ProductsPage() {
       <PageHeader
         title="Product management"
         description="Kelola produk, varian, harga, status, dan stok dasar."
-        action={{ label: "Tambah produk", href: "/dashboard/products/new" }}
+        action={readOnly ? undefined : { label: "Tambah produk", href: "/dashboard/products/new" }}
       />
       <Card>
         <CardContent className="p-0">
@@ -59,6 +61,7 @@ export default async function ProductsPage() {
                         productId={product.id}
                         productName={product.name}
                         isActive={product.is_active}
+                        readOnly={readOnly}
                       />
                     </Td>
                   </tr>

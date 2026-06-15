@@ -27,7 +27,15 @@ const formSchema = z.object({
     parseRupiahInput,
     z.coerce.number().positive("Harga harus lebih dari 0."),
   ),
-  image_url: z.string().trim().url("URL foto tidak valid.").optional().or(z.literal("")),
+  image_url: z
+    .string()
+    .trim()
+    .refine(
+      (value) => !value || value.startsWith("/") || URL.canParse(value),
+      "URL foto tidak valid.",
+    )
+    .optional()
+    .or(z.literal("")),
   is_active: z.coerce.boolean().default(true),
   variant_name: z.string().trim().min(1, "Nama varian wajib diisi."),
   variant_sku: z.string().optional(),

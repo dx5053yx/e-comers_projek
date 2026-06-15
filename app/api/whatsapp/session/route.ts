@@ -18,7 +18,7 @@ async function getBusinessForRequest() {
 
   const { data, error } = await supabase
     .from("business_members")
-    .select("business:businesses(*)")
+    .select("role, business:businesses(*)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -31,7 +31,10 @@ async function getBusinessForRequest() {
     ? data.business[0]
     : data?.business;
 
-  return (business ?? null) as Business | null;
+  return {
+    business: (business ?? null) as Business | null,
+    role: (data?.role as "OWNER" | "STAFF" | "VIEWER" | null) ?? null,
+  };
 }
 
 function botApiConfig() {
@@ -68,7 +71,8 @@ async function callBotApi(path: string, init?: RequestInit) {
 
 export async function GET() {
   try {
-    const business = await getBusinessForRequest();
+    const access = await getBusinessForRequest();
+    const business = access?.business;
 
     if (!business) {
       return jsonError("Business tidak ditemukan.", 404);
@@ -92,10 +96,15 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const business = await getBusinessForRequest();
+    const access = await getBusinessForRequest();
+    const business = access?.business;
 
     if (!business) {
       return jsonError("Business tidak ditemukan.", 404);
+    }
+
+    if (access?.role === "VIEWER") {
+      return jsonError("Akun tamu hanya dapat melihat status WhatsApp.", 403);
     }
 
     const webhookUrl =
@@ -136,10 +145,15 @@ export async function POST(request: Request) {
 
 export async function DELETE() {
   try {
-    const business = await getBusinessForRequest();
+    const access = await getBusinessForRequest();
+    const business = access?.business;
 
     if (!business) {
       return jsonError("Business tidak ditemukan.", 404);
+    }
+
+    if (access?.role === "VIEWER") {
+      return jsonError("Akun tamu tidak dapat memutus koneksi WhatsApp.", 403);
     }
 
     const payload = await callBotApi(`/sessions/${business.slug}`, {
