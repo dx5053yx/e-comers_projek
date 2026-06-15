@@ -22,7 +22,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logoutAction } from "@/app/dashboard/actions";
+import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import type { BusinessMembership } from "@/lib/data/queries";
 import { cn } from "@/lib/utils";
 
 const navGroups = [
@@ -62,10 +64,14 @@ export function DashboardNav({
   variant = "sidebar",
   catalogHref,
   readOnly = false,
+  activeBusinessId,
+  memberships = [],
 }: {
   variant?: "sidebar" | "mobile";
   catalogHref?: string;
   readOnly?: boolean;
+  activeBusinessId?: string;
+  memberships?: BusinessMembership[];
 }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -141,6 +147,14 @@ export function DashboardNav({
                 >
                   <X className="h-5 w-5" aria-hidden />
                 </button>
+              </div>
+
+              <div className="mb-5">
+                <BusinessSwitcher
+                  activeBusinessId={activeBusinessId}
+                  memberships={memberships}
+                  compact
+                />
               </div>
 
               <div className="space-y-5">

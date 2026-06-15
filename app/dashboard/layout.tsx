@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/dashboard/actions";
+import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
                 {formatWhatsAppNumber(business?.whatsapp_number)}
               </p>
+            </div>
+            <div className="mt-4">
+              <BusinessSwitcher
+                activeBusinessId={business?.id}
+                memberships={access.memberships}
+              />
             </div>
           </div>
           <DashboardNav readOnly={readOnly} />
@@ -108,6 +115,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 variant="mobile"
                 catalogHref={business?.slug ? `/katalog/${business.slug}` : undefined}
                 readOnly={readOnly}
+                activeBusinessId={business?.id}
+                memberships={access.memberships}
               />
             </div>
           </div>

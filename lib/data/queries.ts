@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import {
   demoBusiness,
   demoCustomers,
@@ -76,14 +77,23 @@ export function isDemoMode() {
 
 export type BusinessAccessRole = "OWNER" | "STAFF" | "VIEWER";
 
+export const ACTIVE_BUSINESS_COOKIE = "sipandu_active_business";
+
+export type BusinessMembership = {
+  business: Business;
+  role: BusinessAccessRole;
+};
+
 export async function getCurrentBusinessAccess(): Promise<{
   business: Business | null;
   role: BusinessAccessRole;
+  memberships: BusinessMembership[];
 }> {
   if (isDemoMode()) {
     return {
       business: demoBusiness,
       role: "OWNER",
+      memberships: [{ business: demoBusiness, role: "OWNER" }],
     };
   }
 
@@ -100,16 +110,37 @@ export async function getCurrentBusinessAccess(): Promise<{
     .from("business_members")
     .select("role, business_id, business:businesses(*)")
     .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
   if (error) {
     throw error;
   }
 
+  const memberships = (data ?? []).flatMap((membership) => {
+    const business = firstRelation(
+      membership.business as unknown as Business | Business[] | null,
+    );
+
+    if (!business) {
+      return [];
+    }
+
+    return [
+      {
+        business,
+        role: membership.role as BusinessAccessRole,
+      },
+    ];
+  });
+  const activeBusinessId = (await cookies()).get(ACTIVE_BUSINESS_COOKIE)?.value;
+  const activeMembership =
+    memberships.find((membership) => membership.business.id === activeBusinessId) ??
+    memberships[0];
+
   return {
-    business: firstRelation(data?.business as unknown as Business | Business[] | null),
-    role: (data?.role as BusinessAccessRole | null) ?? "STAFF",
+    business: activeMembership?.business ?? null,
+    role: activeMembership?.role ?? "STAFF",
+    memberships,
   };
 }
 

@@ -1,6 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { ACTIVE_BUSINESS_COOKIE } from "@/lib/data/queries";
 import { createSupabaseAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { createSupabaseServerClient, isSupabaseServerConfigured } from "@/lib/supabase/server";
 
@@ -21,10 +23,30 @@ export async function loginAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (data.user) {
+    const { data: membership } = await supabase
+      .from("business_members")
+      .select("business_id")
+      .eq("user_id", data.user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (membership?.business_id) {
+      (await cookies()).set(ACTIVE_BUSINESS_COOKIE, membership.business_id, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 365,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
   }
 
   redirect("/dashboard");
@@ -115,6 +137,14 @@ export async function guestLoginAction() {
       "/login?error=Role VIEWER belum siap. Jalankan migration guest account terbaru di Supabase.",
     );
   }
+
+  (await cookies()).set(ACTIVE_BUSINESS_COOKIE, business.id, {
+    httpOnly: true,
+    maxAge: 60 * 60 * 24 * 365,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
 
   redirect("/dashboard");
 }
