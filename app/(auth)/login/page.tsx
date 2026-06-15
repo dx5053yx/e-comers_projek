@@ -68,10 +68,6 @@ export default async function LoginPage({
                   Lihat dashboard sebagai tamu
                 </Button>
               </form>
-              <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">
-                Cocok untuk dosen dan pengunjung presentasi. Data hanya dapat dilihat dan tidak
-                bisa diubah.
-              </p>
             </>
           ) : null}
           <p className="mt-5 text-center text-sm text-muted-foreground">
