@@ -91,8 +91,8 @@ const plans = [
       "Pencatatan pesanan",
       "Dashboard sederhana",
     ],
-    cta: "Mulai Gratis",
-    href: "/register",
+    cta: "Masuk Dashboard",
+    href: "/login",
     highlighted: false,
   },
   {
@@ -107,8 +107,8 @@ const plans = [
       "Support prioritas",
       "Custom AI tone",
     ],
-    cta: "Upgrade Premium",
-    href: "/register",
+    cta: "Masuk Dashboard",
+    href: "/login",
     highlighted: true,
   },
 ];
@@ -174,9 +174,9 @@ export default async function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-6 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:bg-primary/90"
-                href="/register"
+                href="/login"
               >
-                Daftarkan UMKM
+                Masuk Dashboard
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
               <Link
@@ -342,28 +342,41 @@ export default async function Home() {
               );
 
               return (
-                <div key={business.id} className="rounded-md border border-[var(--landing-border)] bg-[var(--landing-bg)] p-5">
-                  <div className="flex items-start gap-3">
-                    <BusinessLogo business={business} />
-                    <div className="min-w-0">
-                      <h3 className="truncate font-semibold">{business.name}</h3>
-                      <p className="mt-1 text-xs text-[var(--landing-muted)]">
-                        {business.category ?? "UMKM"} - {business.product_count} produk
-                      </p>
+                <div key={business.id} className="overflow-hidden rounded-md border border-[var(--landing-border)] bg-[var(--landing-bg)]">
+                  {business.logo_url ? (
+                    <div className="relative h-36 bg-[var(--landing-soft)]">
+                      <Image
+                        src={business.logo_url}
+                        alt={`Thumbnail ${business.name}`}
+                        fill
+                        sizes="(min-width: 768px) 33vw, 100vw"
+                        className="object-cover"
+                      />
                     </div>
-                  </div>
-                  <p className="mt-4 line-clamp-3 text-sm leading-6 text-[var(--landing-muted)]">
-                    {business.description ?? "UMKM terdaftar di siPandu."}
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <Link href={`/katalog/${business.slug}`}>
-                      <Button size="sm" variant="outline">Katalog</Button>
-                    </Link>
-                    {waUrl ? (
-                      <Link href={waUrl} target="_blank">
-                        <Button size="sm" variant="secondary">WhatsApp</Button>
+                  ) : null}
+                  <div className="p-5">
+                    <div className="flex items-start gap-3">
+                      {business.logo_url ? null : <BusinessLogo business={business} />}
+                      <div className="min-w-0">
+                        <h3 className="truncate font-semibold">{business.name}</h3>
+                        <p className="mt-1 text-xs text-[var(--landing-muted)]">
+                          {business.category ?? "UMKM"} - {business.product_count} produk
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-4 line-clamp-3 text-sm leading-6 text-[var(--landing-muted)]">
+                      {business.description ?? "UMKM terdaftar di siPandu."}
+                    </p>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <Link href={`/katalog/${business.slug}`}>
+                        <Button size="sm" variant="outline">Katalog</Button>
                       </Link>
-                    ) : null}
+                      {waUrl ? (
+                        <Link href={waUrl} target="_blank">
+                          <Button size="sm" variant="secondary">WhatsApp</Button>
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               );
@@ -387,9 +400,9 @@ export default async function Home() {
           </p>
           <Link
             className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-7 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:bg-primary/90"
-            href="/register"
+            href="/login"
           >
-            Daftarkan UMKM Sekarang
+            Masuk Dashboard
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>

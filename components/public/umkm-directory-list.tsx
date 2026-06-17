@@ -1,6 +1,7 @@
 "use client";
 
 import { MapPin, MessageCircle, Package, Search, Store } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -99,53 +100,66 @@ export function UmkmDirectoryList({ businesses }: UmkmDirectoryListProps) {
             );
 
             return (
-              <article key={business.id} className="rounded-md border border-border bg-card p-5">
-                <div className="flex items-start gap-3">
-                  <BusinessLogo business={business} />
-                  <div>
-                    <h2 className="text-lg font-semibold">{business.name}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {business.category ?? "UMKM"}
-                    </p>
+              <article key={business.id} className="overflow-hidden rounded-md border border-border bg-card">
+                {business.logo_url ? (
+                  <div className="relative h-40 bg-muted">
+                    <Image
+                      src={business.logo_url}
+                      alt={`Thumbnail ${business.name}`}
+                      fill
+                      sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+                      className="object-cover"
+                    />
                   </div>
-                </div>
-
-                <p className="mt-4 line-clamp-3 text-sm leading-6 text-muted-foreground">
-                  {business.description ?? "UMKM terdaftar di siPandu."}
-                </p>
-
-                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-primary" aria-hidden />
-                    {business.product_count} produk aktif
+                ) : null}
+                <div className="p-5">
+                  <div className="flex items-start gap-3">
+                    {business.logo_url ? null : <BusinessLogo business={business} />}
+                    <div>
+                      <h2 className="text-lg font-semibold">{business.name}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {business.category ?? "UMKM"}
+                      </p>
+                    </div>
                   </div>
-                  {business.address ? (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-primary" aria-hidden />
-                      {business.address}
-                    </div>
-                  ) : null}
-                  {business.whatsapp_number ? (
-                    <div className="flex items-center gap-2">
-                      <MessageCircle className="h-4 w-4 text-primary" aria-hidden />
-                      {business.whatsapp_number}
-                    </div>
-                  ) : null}
-                </div>
 
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <Link href={`/katalog/${business.slug}`}>
-                    <Button size="sm" variant="outline">
-                      Buka katalog
-                    </Button>
-                  </Link>
-                  {waUrl ? (
-                    <Link href={waUrl} target="_blank">
-                      <Button size="sm" variant="secondary">
-                        Chat WhatsApp
+                  <p className="mt-4 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                    {business.description ?? "UMKM terdaftar di siPandu."}
+                  </p>
+
+                  <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" aria-hidden />
+                      {business.product_count} produk aktif
+                    </div>
+                    {business.address ? (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" aria-hidden />
+                        {business.address}
+                      </div>
+                    ) : null}
+                    {business.whatsapp_number ? (
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4 text-primary" aria-hidden />
+                        {business.whatsapp_number}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Link href={`/katalog/${business.slug}`}>
+                      <Button size="sm" variant="outline">
+                        Buka katalog
                       </Button>
                     </Link>
-                  ) : null}
+                    {waUrl ? (
+                      <Link href={waUrl} target="_blank">
+                        <Button size="sm" variant="secondary">
+                          Chat WhatsApp
+                        </Button>
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
               </article>
             );

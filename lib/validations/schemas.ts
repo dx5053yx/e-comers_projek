@@ -40,6 +40,7 @@ export const businessSchema = z.object({
   description: nullableOptionalText,
   address: nullableOptionalText,
   whatsapp_number: indonesiaPhone.optional().nullable().or(z.literal("")),
+  logo_url: optionalUrl,
   payment_instructions: nullableOptionalText,
   qris_image_url: optionalUrl,
   whatsapp_ai_prompt: nullableOptionalLongText,

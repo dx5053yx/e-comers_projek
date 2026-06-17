@@ -32,8 +32,8 @@ export default async function UmkmDirectoryPage() {
             <Link className="text-muted-foreground hover:text-foreground" href="/#simulasi">
               Simulasi
             </Link>
-            <Link href="/register">
-              <Button size="sm">Daftarkan UMKM</Button>
+            <Link href="/login">
+              <Button size="sm">Masuk Dashboard</Button>
             </Link>
           </nav>
         </div>

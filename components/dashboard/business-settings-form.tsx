@@ -18,7 +18,9 @@ export function BusinessSettingsForm({
   readOnly?: boolean;
 }) {
   const [message, setMessage] = useState<string | null>(null);
+  const [thumbnailImageUrl, setThumbnailImageUrl] = useState(business.logo_url ?? "");
   const [qrisImageUrl, setQrisImageUrl] = useState(business.qris_image_url ?? "");
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
   const [isUploadingQris, setIsUploadingQris] = useState(false);
   const router = useRouter();
 
@@ -49,6 +51,14 @@ export function BusinessSettingsForm({
             </div>
           ))}
         </dl>
+        {thumbnailImageUrl ? (
+          <div className="rounded-md border border-border bg-background p-4">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Thumbnail toko</p>
+            <div className="relative mt-3 aspect-[4/3] w-full max-w-[260px] overflow-hidden rounded-md bg-muted">
+              <Image src={thumbnailImageUrl} alt="Thumbnail toko" fill className="object-cover" />
+            </div>
+          </div>
+        ) : null}
         {qrisImageUrl ? (
           <div className="rounded-md border border-border bg-background p-4">
             <p className="text-xs font-semibold uppercase text-muted-foreground">QRIS toko</p>
@@ -67,6 +77,47 @@ export function BusinessSettingsForm({
     }
 
     return /^(\+62|62|0)8[0-9]{7,12}$/.test(value.replace(/\s|-/g, ""));
+  }
+
+  async function uploadThumbnail(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setMessage("File thumbnail harus berupa gambar.");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      setMessage("Ukuran thumbnail maksimal 3 MB.");
+      return;
+    }
+
+    try {
+      setIsUploadingThumbnail(true);
+      setMessage("Mengupload thumbnail toko...");
+
+      const supabase = createSupabaseBrowserClient();
+      const bucket =
+        process.env.NEXT_PUBLIC_SUPABASE_PRODUCT_IMAGES_BUCKET ?? "product-images";
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const path = `${business.id}/thumbnail-${crypto.randomUUID()}.${extension}`;
+      const { error } = await supabase.storage.from(bucket).upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+      if (error) {
+        setMessage(`Upload thumbnail gagal: ${error.message}`);
+        return;
+      }
+
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+
+      setThumbnailImageUrl(data.publicUrl);
+      setMessage("Thumbnail berhasil diupload. Klik Simpan setting untuk menampilkan di direktori UMKM.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Upload thumbnail gagal.");
+    } finally {
+      setIsUploadingThumbnail(false);
+    }
   }
 
   async function uploadQris(file: File) {
@@ -122,6 +173,7 @@ export function BusinessSettingsForm({
         const description = String(form.get("description") ?? "").trim();
         const address = String(form.get("address") ?? "").trim();
         const paymentInstructions = String(form.get("payment_instructions") ?? "").trim();
+        const thumbnailUrl = String(form.get("logo_url") ?? "").trim();
         const qrisUrl = String(form.get("qris_image_url") ?? "").trim();
 
         if (name.length < 2) {
@@ -149,6 +201,11 @@ export function BusinessSettingsForm({
           return;
         }
 
+        if (thumbnailUrl && !URL.canParse(thumbnailUrl)) {
+          setMessage("URL thumbnail tidak valid.");
+          return;
+        }
+
         if (qrisUrl && !URL.canParse(qrisUrl)) {
           setMessage("URL QRIS tidak valid.");
           return;
@@ -167,6 +224,7 @@ export function BusinessSettingsForm({
             whatsapp_number: whatsappNumber || null,
             description: description || null,
             address: address || null,
+            logo_url: thumbnailUrl || null,
             payment_instructions: paymentInstructions || null,
             qris_image_url: qrisUrl || null,
           }),
@@ -187,6 +245,53 @@ export function BusinessSettingsForm({
           {message}
         </div>
       ) : null}
+      <div className="grid gap-2 md:col-span-2">
+        <Label htmlFor="thumbnail_file">Thumbnail toko di direktori UMKM</Label>
+        <div className="grid gap-3 rounded-md border border-border bg-muted/30 p-4 md:grid-cols-[220px_1fr]">
+          <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-md bg-card">
+            {thumbnailImageUrl ? (
+              <Image
+                src={thumbnailImageUrl}
+                alt="Preview thumbnail toko"
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <ImageUp className="h-8 w-8 text-muted-foreground" aria-hidden />
+            )}
+          </div>
+          <div className="space-y-3">
+            <Input
+              id="thumbnail_file"
+              type="file"
+              accept="image/*"
+              disabled={isUploadingThumbnail}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+
+                if (file) {
+                  uploadThumbnail(file);
+                }
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Gambar ini tampil sebagai thumbnail toko di landing page dan halaman direktori UMKM.
+              Gunakan foto produk, logo, atau tampak depan toko.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-2 md:col-span-2">
+        <Label htmlFor="logo_url">URL thumbnail</Label>
+        <Input
+          id="logo_url"
+          name="logo_url"
+          type="url"
+          value={thumbnailImageUrl}
+          onChange={(event) => setThumbnailImageUrl(event.target.value)}
+          placeholder="Contoh: https://domain.com/thumbnail-toko.jpg"
+        />
+      </div>
       <div className="grid gap-2">
         <Label htmlFor="name">Nama bisnis</Label>
         <Input
