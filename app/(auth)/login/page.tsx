@@ -10,7 +10,7 @@ import { isDemoMode } from "@/lib/data/queries";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const params = await searchParams;
   const demo = isDemoMode();
@@ -35,6 +35,11 @@ export default async function LoginPage({
           {params.error ? (
             <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
               {params.error}
+            </div>
+          ) : null}
+          {params.success ? (
+            <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+              {params.success}
             </div>
           ) : null}
           {demo ? (

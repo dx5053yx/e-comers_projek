@@ -1,11 +1,22 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { BusinessSettingsForm } from "@/components/dashboard/business-settings-form";
+import { DeleteAccountCard } from "@/components/dashboard/delete-account-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentBusinessAccess, isDemoMode } from "@/lib/data/queries";
+import { getCurrentUser } from "@/lib/supabase/server";
 
-export default async function SettingsPage() {
-  const access = await getCurrentBusinessAccess();
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ accountError?: string }>;
+}) {
+  const [access, user, params] = await Promise.all([
+    getCurrentBusinessAccess(),
+    getCurrentUser(),
+    searchParams,
+  ]);
   const business = access.business;
+  const readOnly = access.role === "VIEWER";
 
   return (
     <div className="space-y-6">
@@ -16,7 +27,7 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           {business ? (
-            <BusinessSettingsForm business={business} readOnly={access.role === "VIEWER"} />
+            <BusinessSettingsForm business={business} readOnly={readOnly} />
           ) : (
             <p className="text-sm text-muted-foreground">
               Belum ada bisnis. Daftar ulang atau buat business profile terlebih dahulu.
@@ -27,6 +38,11 @@ export default async function SettingsPage() {
           </p>
         </CardContent>
       </Card>
+      <DeleteAccountCard
+        errorMessage={params.accountError}
+        readOnly={readOnly}
+        userEmail={user?.email}
+      />
     </div>
   );
 }
