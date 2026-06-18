@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { ACTIVE_BUSINESS_COOKIE, type BusinessAccessRole } from "@/lib/data/queries";
 import { createSupabaseServerClient, isSupabaseServerConfigured } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
 
@@ -18,22 +20,38 @@ async function getBusinessForRequest() {
 
   const { data, error } = await supabase
     .from("business_members")
-    .select("role, business:businesses(*)")
+    .select("role, business_id, business:businesses(*)")
     .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
   if (error) {
     throw error;
   }
 
-  const business = Array.isArray(data?.business)
-    ? data.business[0]
-    : data?.business;
+  const memberships = (data ?? []).flatMap((membership) => {
+    const business = Array.isArray(membership.business)
+      ? membership.business[0]
+      : membership.business;
+
+    if (!business) {
+      return [];
+    }
+
+    return [
+      {
+        business: business as Business,
+        role: membership.role as BusinessAccessRole,
+      },
+    ];
+  });
+  const activeBusinessId = (await cookies()).get(ACTIVE_BUSINESS_COOKIE)?.value;
+  const activeMembership =
+    memberships.find((membership) => membership.business.id === activeBusinessId) ??
+    memberships[0];
 
   return {
-    business: (business ?? null) as Business | null,
-    role: (data?.role as "OWNER" | "STAFF" | "VIEWER" | null) ?? null,
+    business: activeMembership?.business ?? null,
+    role: activeMembership?.role ?? null,
   };
 }
 
