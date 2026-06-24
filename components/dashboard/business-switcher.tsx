@@ -18,12 +18,12 @@ function SwitchStatus() {
 
   return pending ? (
     <LoaderCircle
-      className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-primary"
+      className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-primary"
       aria-label="Mengganti toko"
     />
   ) : (
     <ChevronDown
-      className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+      className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]"
       aria-hidden
     />
   );
@@ -45,22 +45,24 @@ export function BusinessSwitcher({
   }
 
   return (
-    <form ref={formRef} action={switchBusinessAction} className="space-y-1.5">
-      <label
-        htmlFor={compact ? "mobile-active-business" : "active-business"}
-        className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-      >
-        <Store className="h-3.5 w-3.5" aria-hidden />
-        Toko aktif
-      </label>
+    <form ref={formRef} action={switchBusinessAction} className={cn(!compact && "space-y-1.5")}>
+      {!compact && (
+        <label
+          htmlFor="active-business"
+          className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]"
+        >
+          <Store className="h-3.5 w-3.5" aria-hidden />
+          Toko aktif
+        </label>
+      )}
       <div className="relative">
         <select
           id={compact ? "mobile-active-business" : "active-business"}
           name="business_id"
           defaultValue={activeBusinessId}
           className={cn(
-            "h-10 w-full appearance-none rounded-md border border-border bg-background pl-3 pr-9 text-sm font-medium text-foreground outline-none transition hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20",
-            compact && "h-11",
+            "appearance-none rounded-md border border-[var(--border)] bg-[var(--card)] pl-3 pr-8 font-bold text-[var(--foreground)] outline-none transition hover:border-primary/40 focus:border-primary",
+            compact ? "h-8 py-1 text-xs max-w-[160px] sm:max-w-[200px]" : "h-10 w-full text-sm",
           )}
           onChange={() => formRef.current?.requestSubmit()}
         >

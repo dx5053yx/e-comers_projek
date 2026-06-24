@@ -33,11 +33,15 @@ export function ThemeToggle({
   className?: string;
   showLabel?: boolean;
 }) {
-  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
+  const [theme, setTheme] = useState<ThemeMode>("light");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    const initial = getInitialTheme();
+    setTheme(initial);
+    applyTheme(initial);
+    setMounted(true);
+  }, []);
 
   function toggleTheme() {
     const nextTheme = theme === "dark" ? "light" : "dark";
@@ -47,6 +51,23 @@ export function ThemeToggle({
   }
 
   const isDark = theme === "dark";
+
+  if (!mounted) {
+    return (
+      <button
+        aria-label="Memuat tema"
+        className={cn(
+          "inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-semibold text-foreground shadow-sm transition",
+          className,
+        )}
+        type="button"
+        disabled
+      >
+        <span className="h-4 w-4" aria-hidden />
+        {showLabel ? <span className="opacity-0">Mode terang</span> : null}
+      </button>
+    );
+  }
 
   return (
     <button

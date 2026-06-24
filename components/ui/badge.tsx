@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 
 const toneClass = {
-  default: "border-border bg-muted text-foreground",
-  green: "border-primary/20 bg-primary/10 text-primary",
-  amber: "border-amber-200 bg-amber-50 text-amber-800",
-  red: "border-red-200 bg-red-50 text-red-800",
-  blue: "border-blue-200 bg-blue-50 text-blue-800",
-  gray: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  default: "badge--muted",
+  green: "badge--green",
+  amber: "badge--amber",
+  red: "badge--red",
+  blue: "badge--muted",
+  gray: "badge--muted",
 };
 
 export function Badge({
@@ -19,13 +19,7 @@ export function Badge({
   children: React.ReactNode;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium leading-none",
-        toneClass[tone],
-        className,
-      )}
-    >
+    <span className={cn("badge", toneClass[tone], className)}>
       {children}
     </span>
   );

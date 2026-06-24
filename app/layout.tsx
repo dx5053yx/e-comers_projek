@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
+import { Plus_Jakarta_Sans, Space_Mono } from "next/font/google";
 import { getAppUrl } from "@/lib/utils";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const spaceMono = Space_Mono({
+  variable: "--font-mono",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
@@ -72,12 +72,14 @@ export default function RootLayout({
   return (
     <html
       lang="id"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${plusJakartaSans.variable} ${spaceMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full bg-background text-foreground">
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`
+        <script
+          id="theme-init"
+          dangerouslySetInnerHTML={{
+            __html: `
             try {
               const saved = localStorage.getItem("sipandu-theme");
               const theme = saved === "dark" || saved === "light"
@@ -85,8 +87,9 @@ export default function RootLayout({
                 : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
               document.documentElement.dataset.theme = theme;
             } catch {}
-          `}
-        </Script>
+          `,
+          }}
+        />
         {children}
       </body>
     </html>

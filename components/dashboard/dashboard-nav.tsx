@@ -2,32 +2,48 @@
 
 import {
   Boxes,
-  ChartNoAxesCombined,
-  CreditCard,
-  ExternalLink,
   Home,
-  LogOut,
-  Menu,
   MessageSquareText,
   Package,
-  Percent,
-  Settings,
   ShoppingBag,
-  Star,
+  CreditCard,
+  Menu,
+  X,
+  ChartNoAxesCombined,
   Truck,
   Users,
-  X,
+  Star,
+  Percent,
+  Settings
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { logoutAction } from "@/app/dashboard/actions";
-import { BusinessSwitcher } from "@/components/dashboard/business-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
-import type { BusinessMembership } from "@/lib/data/queries";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-const navGroups = [
+const topRailItems = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard/analytics", label: "Analitik" },
+  { href: "/dashboard/products", label: "Produk" },
+  { href: "/dashboard/inventory", label: "Stok" },
+  { href: "/dashboard/orders", label: "Pesanan" },
+  { href: "/dashboard/payments", label: "Pembayaran" },
+  { href: "/dashboard/shipments", label: "Pengiriman" },
+  { href: "/dashboard/customers", label: "Pelanggan" },
+  { href: "/dashboard/whatsapp", label: "WhatsApp" },
+  { href: "/dashboard/reviews", label: "Ulasan" },
+  { href: "/dashboard/vouchers", label: "Promo" },
+  { href: "/dashboard/settings", label: "Pengaturan" },
+];
+
+const mobileTabs = [
+  { href: "/dashboard", label: "Beranda", icon: Home },
+  { href: "/dashboard/products", label: "Produk", icon: Package },
+  { href: "/dashboard/orders", label: "Pesanan", icon: ShoppingBag },
+  { href: "/dashboard/whatsapp", label: "WA", icon: MessageSquareText },
+];
+
+const mobileMenuGroups = [
   {
     label: "Utama",
     items: [
@@ -60,221 +76,131 @@ const navGroups = [
   },
 ];
 
-export function DashboardNav({
-  variant = "sidebar",
-  catalogHref,
-  readOnly = false,
-  activeBusinessId,
-  memberships = [],
-}: {
-  variant?: "sidebar" | "mobile";
-  catalogHref?: string;
-  readOnly?: boolean;
-  activeBusinessId?: string;
-  memberships?: BusinessMembership[];
-}) {
+export function TopRailNav() {
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (!mobileMenuOpen) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setMobileMenuOpen(false);
-      }
-    }
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [mobileMenuOpen]);
-
-  if (variant === "mobile") {
-    return (
-      <div className="lg:hidden">
-        <button
-          type="button"
-          aria-controls="dashboard-mobile-menu"
-          aria-expanded={mobileMenuOpen}
-          aria-label={mobileMenuOpen ? "Tutup menu dashboard" : "Buka menu dashboard"}
-          className={cn(
-            "inline-flex h-10 w-10 items-center justify-center rounded-md border shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            mobileMenuOpen
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted/70",
-          )}
-          onClick={() => setMobileMenuOpen((open) => !open)}
-        >
-          {mobileMenuOpen ? (
-            <X className="h-5 w-5" aria-hidden />
-          ) : (
-            <Menu className="h-5 w-5" aria-hidden />
-          )}
-        </button>
-
-        {mobileMenuOpen ? (
-          <>
-            <button
-              type="button"
-              aria-label="Tutup menu dashboard"
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] lg:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <nav
-              id="dashboard-mobile-menu"
-              aria-label="Navigasi dashboard"
-              className="fixed inset-x-3 top-[4.5rem] z-50 max-h-[calc(100dvh-5.25rem)] overflow-y-auto rounded-md border border-border bg-card p-4 shadow-2xl lg:hidden sm:left-auto sm:w-[360px]"
-            >
-              <div className="mb-4 flex items-center justify-between gap-4 border-b border-border pb-3">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Menu dashboard</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Kelola seluruh aktivitas toko</p>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Tutup menu"
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <X className="h-5 w-5" aria-hidden />
-                </button>
-              </div>
-
-              <div className="mb-5">
-                <BusinessSwitcher
-                  activeBusinessId={activeBusinessId}
-                  memberships={memberships}
-                  compact
-                />
-              </div>
-
-              <div className="space-y-5">
-                {navGroups.map((group) => (
-                  <div key={group.label}>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      {group.label}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {group.items.map((item) => {
-                        const active = isActive(pathname, item.href);
-
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            aria-current={active ? "page" : undefined}
-                            className={cn(
-                              "flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition",
-                              active
-                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                                : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:bg-muted/70 hover:text-foreground",
-                            )}
-                            onClick={() => setMobileMenuOpen(false)}
-                          >
-                            <item.icon className="h-4 w-4 shrink-0" aria-hidden />
-                            <span className="min-w-0 truncate">{item.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {catalogHref ? (
-                <div className="mt-5 border-t border-border pt-4">
-                  <Link
-                    href={catalogHref}
-                    target="_blank"
-                    className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-border bg-background px-3 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:bg-muted/70"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Lihat katalog publik
-                    <ExternalLink className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  </Link>
-                </div>
-              ) : null}
-
-              <div className="mt-4 grid gap-2 border-t border-border pt-4">
-                {readOnly ? (
-                  <div className="rounded-md border border-amber-300/60 bg-amber-100/70 px-3 py-2 text-xs leading-5 text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
-                    Mode tamu aktif. Seluruh data hanya dapat dilihat.
-                  </div>
-                ) : null}
-                <ThemeToggle className="w-full justify-start" />
-                <form action={logoutAction}>
-                  <button
-                    type="submit"
-                    className="inline-flex h-10 w-full items-center justify-start gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold text-foreground transition hover:border-danger/40 hover:text-danger"
-                  >
-                    <LogOut className="h-4 w-4" aria-hidden />
-                    Keluar
-                  </button>
-                </form>
-              </div>
-            </nav>
-          </>
-        ) : null}
-      </div>
-    );
-  }
-
+  
   return (
-    <nav className="flex-1 overflow-y-auto px-3 py-4">
-      <div className="space-y-5">
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              {group.label}
-            </p>
-            <div className="mt-2 space-y-1">
-              {group.items.map((item) => {
-                const active = isActive(pathname, item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition",
-                      active
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                    )}
-                  >
-                    <item.icon
-                      className={cn(
-                        "h-4 w-4",
-                        active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary",
-                      )}
-                      aria-hidden
-                    />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+    <nav className="hidden lg:flex items-center gap-1 overflow-x-auto border-b border-[var(--border-subtle)] px-6 bg-[var(--card)] no-scrollbar">
+      {topRailItems.map((item) => {
+        const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "px-4 py-3 text-sm font-bold border-b-[3px] transition-colors whitespace-nowrap",
+              active 
+                ? "border-primary text-primary" 
+                : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--border)]"
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
 
-function isActive(pathname: string, href: string) {
-  if (href === "/dashboard") {
-    return pathname === href;
-  }
+export function BottomTabBar() {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+  
+  return (
+    <>
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-[var(--card)] border-t border-[var(--border)] flex items-center justify-around px-2 pb-1 pt-2 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        {mobileTabs.map((item) => {
+          const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center w-full py-1 gap-1 transition-colors",
+                active ? "text-primary" : "text-[var(--muted-foreground)]"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="text-[10px] font-bold mt-0.5">{item.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="flex flex-col items-center justify-center w-full py-1 gap-1 transition-colors text-[var(--muted-foreground)] hover:text-primary"
+        >
+          <Menu className="h-5 w-5" />
+          <span className="text-[10px] font-bold mt-0.5">Lainnya</span>
+        </button>
+      </nav>
+
+      {menuOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] lg:hidden" 
+            onClick={() => setMenuOpen(false)} 
+          />
+          
+          {/* Floating Menu Card */}
+          <div className="fixed inset-x-4 bottom-24 z-50 max-h-[75vh] flex flex-col bg-[var(--background)] rounded-2xl shadow-2xl border border-[var(--border-subtle)] lg:hidden overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4 bg-[var(--card)] shrink-0">
+              <div>
+                <p className="font-bold text-[var(--foreground)] text-sm">Menu dashboard</p>
+                <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">Kelola seluruh aktivitas toko</p>
+              </div>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="p-1.5 text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {mobileMenuGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                    {group.label}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {group.items.map((item) => {
+                      const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMenuOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2 rounded-md border p-3 text-sm font-bold transition",
+                            active
+                              ? "border-primary bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] text-primary shadow-sm"
+                              : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-primary/40 hover:text-[var(--foreground)]"
+                          )}
+                        >
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
 }

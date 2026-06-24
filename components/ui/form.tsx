@@ -7,10 +7,7 @@ export function Input({
 }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={cn(
-        "h-11 w-full rounded-md border border-border bg-card px-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20",
-        className,
-      )}
+      className={cn("input", className)}
       {...props}
     />
   );
@@ -22,10 +19,7 @@ export function Textarea({
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
-      className={cn(
-        "min-h-28 w-full rounded-md border border-border bg-card px-3 py-2.5 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20",
-        className,
-      )}
+      className={cn("input min-h-28 py-2.5", className)}
       {...props}
     />
   );
@@ -38,10 +32,7 @@ export function Select({
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
-      className={cn(
-        "h-11 w-full rounded-md border border-border bg-card px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20",
-        className,
-      )}
+      className={cn("input", className)}
       {...props}
     >
       {children}
@@ -55,7 +46,7 @@ export function Label({
 }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn("text-sm font-semibold text-foreground", className)}
+      className={cn("text-[11px] font-bold uppercase tracking-widest text-[var(--foreground)]", className)}
       {...props}
     />
   );

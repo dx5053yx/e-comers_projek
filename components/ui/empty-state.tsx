@@ -1,6 +1,3 @@
-import { Inbox } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-
 export function EmptyState({
   title,
   description,
@@ -9,14 +6,14 @@ export function EmptyState({
   description: string;
 }) {
   return (
-    <Card>
-      <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 text-center">
-        <Inbox className="h-9 w-9 text-muted-foreground" aria-hidden />
-        <div>
-          <p className="font-medium">{title}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="chat-window border border-[var(--border)] max-w-sm mb-8 shadow-sm">
+        <div className="bubble bubble--outgoing">
+          <div className="bubble__sender">siPandu Bot</div>
+          {description}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      <p className="font-bold text-lg text-[var(--foreground)]">{title}</p>
+    </div>
   );
 }
