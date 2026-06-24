@@ -1,13 +1,10 @@
-import { ArrowRight, ClipboardList, CreditCard, PackageCheck, Timer } from "lucide-react";
-import Link from "next/link";
+import { ClipboardList, CreditCard, PackageCheck, Timer } from "lucide-react";
 import type { ComponentType } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Td, Th, Table } from "@/components/ui/table";
+import { OrdersTableWithFilter } from "@/components/orders/orders-table-with-filter";
 import { getCurrentBusiness, getOrders } from "@/lib/data/queries";
-import { getOrderStatusTone, orderStatusLabels, paymentStatusLabels } from "@/lib/orders/status";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 function SummaryCard({
   label,
@@ -82,81 +79,7 @@ export default async function OrdersPage() {
         />
       </section>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="table-scroll border-0">
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Order</Th>
-                  <Th>Customer</Th>
-                  <Th>Channel</Th>
-                  <Th>Status</Th>
-                  <Th>Payment</Th>
-                  <Th>Total</Th>
-                  <Th>Dibuat</Th>
-                  <Th>Action</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr key={order.id} className="transition hover:bg-muted/40">
-                    <Td>
-                      <Link
-                        className="font-semibold text-foreground transition hover:text-primary"
-                        href={`/dashboard/orders/${order.id}`}
-                      >
-                        {order.order_code}
-                      </Link>
-                    </Td>
-                    <Td>
-                      <div className="min-w-44">
-                        <p className="font-medium">{order.customer?.name ?? "Customer"}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {order.customer?.whatsapp_number ?? "-"}
-                        </p>
-                      </div>
-                    </Td>
-                    <Td>
-                      <Badge tone={order.source === "WHATSAPP" ? "green" : "blue"}>
-                        {order.source}
-                      </Badge>
-                    </Td>
-                    <Td>
-                      <Badge tone={getOrderStatusTone(order.status)}>
-                        {orderStatusLabels[order.status]}
-                      </Badge>
-                    </Td>
-                    <Td>
-                      <Badge tone={order.payment_status === "PAID" ? "green" : "amber"}>
-                        {paymentStatusLabels[order.payment_status]}
-                      </Badge>
-                    </Td>
-                    <Td className="font-semibold">{formatCurrency(order.grand_total)}</Td>
-                    <Td>{formatDate(order.created_at)}</Td>
-                    <Td>
-                      <Link
-                        className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:border-primary/30 hover:bg-muted/70"
-                        href={`/dashboard/orders/${order.id}`}
-                      >
-                        Kelola
-                        <ArrowRight className="h-4 w-4" aria-hidden />
-                      </Link>
-                    </Td>
-                  </tr>
-                ))}
-                {orders.length === 0 ? (
-                  <tr>
-                    <Td className="py-10 text-center text-muted-foreground" colSpan={8}>
-                      Belum ada order masuk.
-                    </Td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <OrdersTableWithFilter orders={orders} />
     </div>
   );
 }
