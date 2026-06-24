@@ -153,13 +153,6 @@ export default async function Home() {
               <div className="bubble__time">10:02 ✓</div>
             </div>
 
-            <div className="absolute bottom-6 left-6 right-6 sm:right-auto z-20 bg-[var(--card)]/95 backdrop-blur-md rounded-xl p-5 border border-[var(--border)] shadow-2xl max-w-xs">
-              <h3 className="font-bold text-[var(--foreground)] leading-tight">Chatbot AI untuk UMKM Purbalingga</h3>
-              <p className="mt-2 text-sm text-[var(--muted-foreground)] leading-relaxed">Balas chat 24/7 dan catat pesanan otomatis tanpa ribet.</p>
-              <div className="mt-4 flex gap-2">
-                <Link href="/dashboard" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">Masuk Dashboard <ArrowRight className="h-3 w-3" /></Link>
-              </div>
-            </div>
           </div>
           
           <div className="order-1 lg:order-2">
