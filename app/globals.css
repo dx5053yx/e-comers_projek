@@ -85,11 +85,11 @@
   --danger:              #E05A42;
   --success:             #3DC870;
   --warning:             #F0B830;
-  --chat-bg:             #0D0B07;
-  --chat-outgoing:       #1A3D25;
-  --chat-incoming:       #2A2218;
-  --chat-time:           #6B5B3E;
-  --chat-separator:      #352C1C;
+  --chat-bg:             #1C1610;
+  --chat-outgoing:       #215231;
+  --chat-incoming:       #33281D;
+  --chat-time:           #8E7E63;
+  --chat-separator:      #4A3D2A;
   --landing-bg:          #130E08;
   --landing-surface:     #1E1710;
   --landing-soft:        #2A2218;
@@ -200,6 +200,8 @@ textarea {
   max-width: 78%;
   padding: 10px 14px;
   font-size: 13px;
+  font-weight: 500;
+  color: var(--foreground);
   line-height: 1.55;
   position: relative;
 }

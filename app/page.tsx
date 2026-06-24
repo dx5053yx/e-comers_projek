@@ -128,21 +128,19 @@ export default async function Home() {
       <section className="relative overflow-hidden bg-[var(--landing-bg)] py-16 md:py-24">
         <div className="container-page relative grid min-h-[600px] gap-12 lg:grid-cols-[1fr_1fr] lg:items-center">
           <div className="chat-window shadow-xl border border-[var(--border)] max-w-lg mx-auto w-full order-2 lg:order-1 relative h-full flex flex-col justify-end min-h-[480px]">
-            <div className="absolute inset-x-0 bottom-[-20px] h-32 bg-gradient-to-t from-[var(--landing-bg)] to-transparent z-10 pointer-events-none" />
-            
             <div className="chat-day-separator">Rabu, 4 Juni 2026</div>
-            <div className="bubble bubble--outgoing">
+            <div className="bubble bubble--outgoing text-[var(--foreground)] font-medium z-10">
               <div className="bubble__sender">siPandu Bot</div>
               Selamat datang di Warung Bu Sari! Ada yang bisa kami bantu?
               <div className="bubble__time">10:00 ✓</div>
             </div>
             
-            <div className="bubble bubble--incoming">
+            <div className="bubble bubble--incoming text-[var(--foreground)] font-medium z-10">
               mendoan 10 sama es teh 2, ambil jam 5
               <div className="bubble__time">10:02 ✓✓</div>
             </div>
 
-            <div className="bubble bubble--outgoing relative z-0">
+            <div className="bubble bubble--outgoing relative z-10 text-[var(--foreground)] font-medium">
               <div className="bubble__sender">siPandu Bot</div>
               Siap kak! Pesanannya:<br/>
               <span className="font-mono mt-2 block">10 Mendoan — Rp 20.000</span>
@@ -155,10 +153,11 @@ export default async function Home() {
               <div className="bubble__time">10:02 ✓</div>
             </div>
 
-            <div className="absolute bottom-4 left-4 z-20 bg-[color-mix(in_srgb,var(--landing-bg)_90%,transparent)] backdrop-blur-md rounded-lg p-4 border border-[var(--border)] shadow-lg max-w-xs">
-              <h3 className="font-semibold text-sm">Chatbot AI untuk UMKM Purbalingga</h3>
-              <div className="mt-3 flex gap-2">
-                <Link href="/dashboard" className="text-xs font-semibold text-primary hover:underline">Masuk Dashboard →</Link>
+            <div className="absolute bottom-6 left-6 right-6 sm:right-auto z-20 bg-[var(--card)]/95 backdrop-blur-md rounded-xl p-5 border border-[var(--border)] shadow-2xl max-w-xs">
+              <h3 className="font-bold text-[var(--foreground)] leading-tight">Chatbot AI untuk UMKM Purbalingga</h3>
+              <p className="mt-2 text-sm text-[var(--muted-foreground)] leading-relaxed">Balas chat 24/7 dan catat pesanan otomatis tanpa ribet.</p>
+              <div className="mt-4 flex gap-2">
+                <Link href="/dashboard" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">Masuk Dashboard <ArrowRight className="h-3 w-3" /></Link>
               </div>
             </div>
           </div>
@@ -189,16 +188,16 @@ export default async function Home() {
                 <div className="flex-1 chat-window border border-[var(--border)] max-w-md w-full mx-auto shadow-md">
                   {idx === 0 ? (
                     <>
-                      <div className="bubble bubble--incoming">stok mendoan masih?</div>
-                      <div className="bubble bubble--outgoing">
+                      <div className="bubble bubble--incoming text-[var(--foreground)] font-medium">stok mendoan masih?</div>
+                      <div className="bubble bubble--outgoing text-[var(--foreground)] font-medium">
                         <div className="bubble__sender">siPandu Bot</div>
                         Masih ada kak, 50 biji. Langsung digoreng anget-anget.
                       </div>
                     </>
                   ) : idx === 1 ? (
                      <>
-                      <div className="bubble bubble--incoming">pesan seblak 1 ya, pedas pol</div>
-                      <div className="bubble bubble--outgoing">
+                      <div className="bubble bubble--incoming text-[var(--foreground)] font-medium">pesan seblak 1 ya, pedas pol</div>
+                      <div className="bubble bubble--outgoing text-[var(--foreground)] font-medium">
                         <div className="bubble__sender">siPandu Bot</div>
                         Dicatat! SP-20260604-001 masuk ke antrean dapur.
                       </div>
