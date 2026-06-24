@@ -129,18 +129,18 @@ export default async function Home() {
         <div className="container-page relative grid min-h-[600px] gap-12 lg:grid-cols-[1fr_1fr] lg:items-center">
           <div className="chat-window shadow-xl border border-[var(--border)] max-w-lg mx-auto w-full order-2 lg:order-1 relative h-full flex flex-col justify-end min-h-[480px]">
             <div className="chat-day-separator">Rabu, 4 Juni 2026</div>
-            <div className="bubble bubble--outgoing text-[var(--foreground)] font-medium z-10">
+            <div className="bubble bubble--outgoing text-foreground font-medium z-10">
               <div className="bubble__sender">siPandu Bot</div>
               Selamat datang di Warung Bu Sari! Ada yang bisa kami bantu?
               <div className="bubble__time">10:00 ✓</div>
             </div>
             
-            <div className="bubble bubble--incoming text-[var(--foreground)] font-medium z-10">
+            <div className="bubble bubble--incoming text-foreground font-medium z-10">
               mendoan 10 sama es teh 2, ambil jam 5
               <div className="bubble__time">10:02 ✓✓</div>
             </div>
 
-            <div className="bubble bubble--outgoing relative z-10 text-[var(--foreground)] font-medium">
+            <div className="bubble bubble--outgoing relative z-10 text-foreground font-medium">
               <div className="bubble__sender">siPandu Bot</div>
               Siap kak! Pesanannya:<br/>
               <span className="font-mono mt-2 block">10 Mendoan — Rp 20.000</span>
@@ -188,16 +188,16 @@ export default async function Home() {
                 <div className="flex-1 chat-window border border-[var(--border)] max-w-md w-full mx-auto shadow-md">
                   {idx === 0 ? (
                     <>
-                      <div className="bubble bubble--incoming text-[var(--foreground)] font-medium">stok mendoan masih?</div>
-                      <div className="bubble bubble--outgoing text-[var(--foreground)] font-medium">
+                      <div className="bubble bubble--incoming text-foreground font-medium">stok mendoan masih?</div>
+                      <div className="bubble bubble--outgoing text-foreground font-medium">
                         <div className="bubble__sender">siPandu Bot</div>
                         Masih ada kak, 50 biji. Langsung digoreng anget-anget.
                       </div>
                     </>
                   ) : idx === 1 ? (
                      <>
-                      <div className="bubble bubble--incoming text-[var(--foreground)] font-medium">pesan seblak 1 ya, pedas pol</div>
-                      <div className="bubble bubble--outgoing text-[var(--foreground)] font-medium">
+                      <div className="bubble bubble--incoming text-foreground font-medium">pesan seblak 1 ya, pedas pol</div>
+                      <div className="bubble bubble--outgoing text-foreground font-medium">
                         <div className="bubble__sender">siPandu Bot</div>
                         Dicatat! SP-20260604-001 masuk ke antrean dapur.
                       </div>
